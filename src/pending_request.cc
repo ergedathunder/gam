@@ -20,6 +20,12 @@
 #include "chars.h"
 
 void Worker::ProcessPendingRead(Client* cli, WorkRequest* wr) {
+  /* add xmx add */
+  if (wr->flag & Write_shared) {
+    processPendingReadSubBlock(cli, wr);
+    return;
+  }
+  /* add xmx add */
   epicAssert(wr->parent);
   epicAssert(
       (IsLocal(wr->addr) && wr->op == FETCH_AND_SHARED)
@@ -130,6 +136,12 @@ void Worker::ProcessPendingRead(Client* cli, WorkRequest* wr) {
 }
 
 void Worker::ProcessPendingReadForward(Client* cli, WorkRequest* wr) {
+/* add xmx add */
+  if (wr->flag & Write_shared) {
+    processPendingReadForward(cli, wr);
+    return;
+  }
+  /* add xmx add */
 #ifdef SELECTIVE_CACHING
   epicAssert(!(wr->flag & NOT_CACHE));
 #endif
@@ -156,6 +168,12 @@ void Worker::ProcessPendingReadForward(Client* cli, WorkRequest* wr) {
 }
 
 void Worker::ProcessPendingWrite(Client* cli, WorkRequest* wr) {
+/* add xmx add */
+  if (wr->flag & Write_shared) {
+    processPendingWriteSubBlock(cli, wr);
+    return;
+  }
+  /* add xmx add */
 #ifdef SELECTIVE_CACHING
   wr->addr = TOBLOCK(wr->addr);
 #endif
@@ -432,6 +450,12 @@ void Worker::ProcessPendingWrite(Client* cli, WorkRequest* wr) {
 }
 
 void Worker::ProcessPendingWriteForward(Client* cli, WorkRequest* wr) {
+/* add xmx add */
+  if (wr->flag & Write_shared) {
+    processPendingWriteForward(cli, wr);
+    return;
+  }
+  /* add xmx add */
   epicAssert(wr->parent);
   epicAssert(IsLocal(wr->addr));  //I'm the home node
   WorkRequest* parent = wr->parent;
@@ -499,6 +523,12 @@ void Worker::ProcessPendingEvictDirty(Client* cil, WorkRequest* wr) {
 }
 
 void Worker::ProcessPendingInvalidateForward(Client* cli, WorkRequest* wr) {
+  /* add xmx add */
+  if (wr->flag & Write_shared) {
+    processPendingInvalidateForward(cli, wr);
+    return;
+  }
+  /* add xmx add */
   WorkRequest* parent = wr->parent;
   epicAssert(parent);
   epicAssert(TOBLOCK(parent->addr) == wr->addr);
@@ -713,6 +743,13 @@ void Worker::ProcessPendingRequest(Client* cli, WorkRequest* wr) {
       break;
     }
     /* add ergeda add */
+
+    /* add xmx add */
+    case FETCH_SUB_BLOCK_META: {
+      processPendingFetchSubBlockMeta(cli, wr);
+      break;
+    }
+    /* add xmx add */
     default:
       epicLog(LOG_WARNING, "unrecognized work request %d", wr->op);
       exit(-1);
@@ -1052,3 +1089,401 @@ void Worker::ProcessPendingWeInv(Client * client, WorkRequest * wr) { //和RMFOR
   wr->unlock();
 }
 /* add ergeda add */
+
+/* add xmx add */
+void Worker::processPendingFetchSubBlockMeta(Client *client, WorkRequest *wr) {
+  epicAssert(BLOCK_ALIGNED(wr->addr));
+  epicInfo("received sub-block meta from worker %d", client->GetWorkerId());
+  cache.lock(wr->addr);
+  CacheLine *cacheLine = cache.GetCLine(wr->addr);
+  WorkRequest *parent = wr->parent;
+  epicAssert(!(parent->flag & SUB_READ));
+  parent->lock();
+  parent->counter--;
+
+  if (cacheLine) {
+    // 更新这一块的分块信息
+    cacheLine->updateSubCachesMeta(wr->ptr);
+    cacheLine->state = CACHE_SUB_VALID;
+    // debug
+    {
+      char buf[4096] = {0};
+      int offset = 0;
+      offset += sprintf(buf, "sub-cache size = %lu, splits = [ ", cacheLine->subCaches.size());
+      for (const auto &subCache: cacheLine->subCaches) {
+        offset += sprintf(buf + offset, "%lu ", subCache.end - wr->addr);
+      }
+      offset -= 4;
+      offset += sprintf(buf + offset, "]");
+      (void) offset;
+      epicInfo("sub-block meta for %lx from worker %d: %s", wr->addr, client->GetWorkerId(), buf);
+    }
+  } else { // no cache line
+    epicFatal("cache line for %lx is not existed", wr->addr);
+  }
+
+  parent->unlock();
+  cache.unlock(wr->addr);
+  sb.sb_free(wr->ptr);
+
+  ProcessToServeRequest(wr);
+
+  delete wr;
+}
+
+void Worker::processPendingReadSubBlock(Client *client, WorkRequest *wr) {
+  /**
+   * READ:               sub-cache   invalid -> shared   counter = 0
+   * FETCH_AND_SHARED:   sub-block   dirty   -> shared   counter = 0
+   */
+  epicInfo("process pending read from worker %d. wr=%s", client->GetWorkerId(), ToString(wr).c_str());
+  epicAssert(wr->parent);
+  epicAssert((IsLocal(wr->addr) && wr->op == FETCH_AND_SHARED) || (!IsLocal(wr->addr) && wr->op == READ));
+
+  WorkRequest *parent = wr->parent;
+  WorkRequest *wrOrigin = parent->parent ? parent->parent : parent;
+  CacheLine *cacheLine = nullptr;
+  DirEntry *entry = nullptr;
+  GAddr block = TOBLOCK(wr->addr);
+  void *localBlock = wr->op == READ ? nullptr : ToLocal(block);
+
+  parent->lock();
+
+  if (wr->op == READ) {
+    cache.lock(block);
+    cacheLine = cache.GetCLine(wr->addr);
+    epicAssert(cacheLine);
+
+    auto subCache = cacheLine->findSubCache(wr);
+    if (subCache == cacheLine->subCaches.end()) {
+      epicFatal("no sub-cache for %lx(size=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+    } else {
+      GAddr parentEnd = GADD(parent->addr, parent->size);
+      GAddr end = GADD(wr->addr, wr->size);
+      GAddr cpyStart = max(wr->addr, parent->addr);
+      void *dstStart = static_cast<char *>(parent->ptr) + (cpyStart - parent->addr);
+      void *srcStart = static_cast<char *>(wr->ptr) + (cpyStart - wr->addr);
+      size_t len = min(end, parentEnd) - cpyStart;
+      memcpy(dstStart, srcStart, len);
+      subCache->toShared();
+      epicInfo("copied %lu bytes from sub-cache(%s) to wr=%s",
+               len, ToString(*subCache).c_str(), ToString(parent).c_str());
+    }
+
+    cache.unlock(block);
+  } else if (wr->op == FETCH_AND_SHARED) {
+    directory.lock(localBlock);
+    entry = directory.GetEntry(localBlock);
+    epicAssert(entry);
+
+    auto subEntry = entry->findSubEntry(wr);
+    if (subEntry == entry->subEntries.end()) {
+      epicFatal("no sub-block for %lx(size=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+    } else {
+      GAddr parentEnd = GADD(parent->addr, parent->size);
+      GAddr end = GADD(wr->addr, wr->size);
+      GAddr cpyStart = max(wr->addr, parent->addr);
+      void *dstStart = static_cast<char *>(parent->ptr) + (cpyStart - parent->addr);
+      void *srcStart = static_cast<char *>(wr->ptr) + (cpyStart - wr->addr);
+      size_t len = min(end, parentEnd) - cpyStart;
+      memcpy(dstStart, srcStart, len);
+      // 这里子块从dirty -> shared，原来的所有者的缓存子块也变为shared，所以sharer不需要更改
+      subEntry->toShared();
+      epicInfo("copied %lu bytes from sub-block(%s) to wr=%s",
+               len, ToString(*subEntry).c_str(), ToString(parent).c_str());
+    }
+
+    directory.unlock(localBlock);
+  } else {
+    epicFatal("shouldn't happen");
+    epicAssert(false);
+  }
+
+  int ret = ErasePendingWork(wr->id);
+  epicAssert(ret);
+
+  parent->counter--;
+  if (parent->flag & SUB_READ) {
+    epicWarning("parent-counter=%d", parent->counter.load());
+    parent->unlock();
+    if (parent->counter == 0) {
+      wrOrigin->counter--;
+      delete parent;
+      if (wrOrigin->counter == 0) {
+        Notify(wrOrigin);
+      }
+    }
+  } else {
+    epicAssert(parent == wrOrigin);
+    //epicWarning("origin-counter=%d", parent->counter.load()); /*add xmx add */
+    parent->unlock();
+    if (parent->counter == 0) {
+      Notify(wrOrigin);
+    }
+  }
+
+  ProcessToServeRequest(wr);
+  delete wr;
+}
+
+void Worker::processPendingReadForward(Client *client, WorkRequest *wr) {
+  /**
+   * READ_FORWARD
+   *    parent = READ (Worker::processRemoteReadSubBlock)
+   */
+  epicInfo("process pending read forward from worker %d. wr=%s", client->GetWorkerId(), ToString(wr).c_str());
+  epicAssert(wr->op == READ_FORWARD);
+  epicAssert(wr->parent);
+  epicAssert(IsLocal(wr->addr));
+  //parent request is from local node
+  WorkRequest *parent = wr->parent;
+  void *localAddr = ToLocal(wr->addr);
+  GAddr block = TOBLOCK(wr->addr);
+  void *localBlock = ToLocal(block);
+
+  directory.lock(localBlock);
+  DirEntry *entry = directory.GetEntry(localBlock);
+  auto subEntry = entry->findSubEntry(wr);
+  if (subEntry == entry->subEntries.end()) {
+    epicFatal("read error! no sub-block for %lx(length=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+  }
+  Client *remoteClient = FindClientWid(wr->pwid);
+  remoteClient->WriteWithImm(parent->ptr, localAddr, parent->size, parent->id);
+  subEntry->toShared();
+  subEntry->sharers.clear();
+  subEntry->addSharer(wr->pwid);
+  epicInfo("sent sub-block%s to worker %d", ToString(*subEntry).c_str(), wr->pwid);
+  directory.unlock(localBlock);
+
+  int ret = ErasePendingWork(wr->id);
+  epicAssert(ret);
+
+  ProcessToServeRequest(wr);
+  delete wr;
+  delete parent;
+}
+
+void Worker::processPendingWriteSubBlock(Client *client, WorkRequest *wr) {
+  /**
+   * WRITE:                 sub-cache   invalid -> dirty      counter = 0
+   * WRITE_PERMISSION_ONLY: sub-cache   shared  -> dirty      counter = 0
+   * FETCH_AND_INVALIDATE:  sub-block   dirty   -> unshared   counter = sharers.size (=1)
+   * INVALIDATE:            sub-block   shared  -> unshared   counter = sharers.size
+   */
+  epicInfo("process pending write from worker %d. wr=%s", client->GetWorkerId(), ToString(wr).c_str());
+  epicAssert(((wr->op == WRITE || wr->op == WRITE_PERMISSION_ONLY) && wr->flag & CACHED)
+             || ((wr->op == FETCH_AND_INVALIDATE || wr->op == INVALIDATE) && IsLocal(wr->addr)));
+  WorkRequest *parent = wr->parent;
+  WorkRequest *wrOrigin = parent->parent ? parent->parent : parent;
+  CacheLine *cacheLine = nullptr;
+  DirEntry *entry = nullptr;
+  GAddr block = TOBLOCK(wr->addr);
+  void *localBlock = (wr->op == FETCH_AND_INVALIDATE || wr->op == INVALIDATE) ? ToLocal(block) : nullptr;
+
+  parent->lock();
+  // counter = sharers.size
+  // 当前节点是本地节点(home node)，请求是本地节点发起的
+  if (wr->op == FETCH_AND_INVALIDATE || wr->op == INVALIDATE) {
+    directory.lock(localBlock);
+    entry = directory.GetEntry(localBlock);
+    epicAssert(entry);
+
+    wr->counter--;
+    auto subEntry = entry->findSubEntry(wr);
+    if (subEntry == entry->subEntries.end()) {
+      epicFatal("no sub-block for %lx(size=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+    } else {
+      subEntry->removeSharer(client->GetWorkerId());
+    }
+    // 所有副本已无效化，可以写入
+    if (wr->counter == 0) {
+      GAddr parentEnd = GADD(parent->addr, parent->size);
+      GAddr end = GADD(wr->addr, wr->size);
+      GAddr cpyStart = max(wr->addr, parent->addr);
+      void *srcStart = static_cast<char *>(parent->ptr) + (cpyStart - parent->addr);
+      void *dstStart = static_cast<char *>(wr->ptr) + (cpyStart - wr->addr);
+      size_t len = min(end, parentEnd) - cpyStart;
+      memcpy(dstStart, srcStart, len);
+      subEntry->toUnshared();
+      epicInfo("copied %lu bytes from wr=%s to sub-block(%s)",
+               len, ToString(parent).c_str()), ToString(*subEntry).c_str();
+
+      int ret = ErasePendingWork(wr->id);
+      epicAssert(ret);
+      parent->counter--;
+    }
+
+    directory.unlock(localBlock);
+  } else if (wr->op == WRITE || wr->op == WRITE_PERMISSION_ONLY) {
+    // counter = 0
+    // 当前节点是远程节点
+    cache.lock(block);
+    cacheLine = cache.GetCLine(block);
+    epicAssert(cacheLine);
+
+    auto subCache = cacheLine->findSubCache(wr);
+    if (subCache == cacheLine->subCaches.end()) {
+      epicFatal("no sub-cache for %lx(size=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+    }
+
+    GAddr parentEnd = GADD(parent->addr, parent->size);
+    GAddr end = GADD(wr->addr, wr->size);
+    GAddr cpyStart = max(wr->addr, parent->addr);
+    void *srcStart = static_cast<char *>(parent->ptr) + (cpyStart - parent->addr);
+    void *dstStart = static_cast<char *>(wr->ptr) + (cpyStart - wr->addr);
+    size_t len = min(end, parentEnd) - cpyStart;
+    memcpy(dstStart, srcStart, len);
+    subCache->toDirty();
+    epicInfo("copied %lu bytes from wr=%s to sub-cache(%s)",
+             len, ToString(parent).c_str(), ToString(*subCache).c_str());
+
+    int ret = ErasePendingWork(wr->id);
+    epicAssert(ret);
+    parent->counter--;
+
+    cache.unlock(block);
+  } else {
+    epicFatal("shouldn't happen");
+    epicAssert(false);
+  }
+
+
+  if (parent->flag & SUB_WRITE) {
+    epicWarning("parent-counter=%d", parent->counter.load());
+    parent->unlock();
+    if (parent->counter == 0) {
+      wrOrigin->counter--;
+      delete parent;
+      if (wrOrigin->counter == 0) {
+        Notify(wrOrigin);
+      }
+    }
+  } else {
+    epicAssert(parent == wrOrigin);
+    //epicWarning("origin-counter=%d", parent->counter.load()); /* add xmx add */
+    parent->unlock();
+    if (parent->counter == 0) {
+      Notify(wrOrigin);
+    }
+  }
+
+  if (wr->counter == 0) {
+    ProcessToServeRequest(wr);
+    delete wr;
+  }
+}
+
+void Worker::processPendingInvalidateForward(Client *client, WorkRequest *wr) {
+  /**
+   * INVALIDATE_FORWARD
+   *    parent = WRITE | WRITE_PERMISSION_ONLY (Worker::processRemoteWriteSubBlock)
+   */
+  epicInfo("process pending invalidate forward from worker %d. wr=%s", client->GetWorkerId(), ToString(wr).c_str());
+  WorkRequest *parent = wr->parent;
+  epicAssert(parent);
+  parent->lock();
+
+  void *localAddr = ToLocal(wr->addr);
+  GAddr block = TOBLOCK(wr->addr);
+  void *localBlock = ToLocal(block);
+  directory.lock(localBlock);
+
+  epicAssert(IsLocal(wr->addr));
+  wr->counter--;
+
+  DirEntry *entry = directory.GetEntry(localBlock);
+
+  auto subEntry = entry->findSubEntry(parent);
+  if (subEntry == entry->subEntries.end()) {
+    epicFatal("no sub-block for %lx(size=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+  }
+  subEntry->removeSharer(client->GetWorkerId());
+
+  //normal process below
+  if (wr->counter == 0) {
+    Client *remoteClient = FindClientWid(wr->pwid);
+    if (WRITE == parent->op) {
+      remoteClient->WriteWithImm(parent->ptr, localAddr, parent->size, parent->id);
+      subEntry->toDirty();
+      subEntry->sharers.clear();
+      subEntry->addSharer(wr->pwid);
+      epicInfo("sent sub-block%s to worker %d", ToString(*subEntry).c_str(), wr->pwid);
+    } else if (WRITE_PERMISSION_ONLY == parent->op) {
+      //deadlock: one node (Node A) wants to update its cache from shared to dirty,
+      //but at the same time, the home nodes invalidates all its shared copy
+      //(due to a local write, or remote write after local/remote read)
+      //currently, dir_state == DIR_UNSHARED
+      //which means that the shared list doesn't contain the requesting node A.
+      //solution: Node A acts as it is still a shared copy so that the invalidation can completes,
+      //after which, home node processes the pending list
+      //and change the processing from WRITE_PERMISSION_ONLY to WRITE
+      subEntry->toDirty();
+      subEntry->sharers.clear();
+      subEntry->addSharer(wr->pwid);
+      if (DIR_UNSHARED == subEntry->state) {
+        remoteClient->WriteWithImm(parent->ptr, localAddr, parent->size, parent->id);
+        epicWarning("deadlock detected");
+        epicInfo("sent sub-block%s to worker %d", ToString(*subEntry).c_str(), wr->pwid);
+      } else {
+        remoteClient->WriteWithImm(nullptr, nullptr, 0, parent->id);
+        epicInfo("transferred ownership of sub-block%s to worker %d", ToString(*subEntry).c_str(), wr->pwid);
+      }
+    }
+
+    directory.unlock(localBlock);
+    parent->unlock();
+
+    //clear the pending structures
+    int ret = ErasePendingWork(wr->id);
+    epicAssert(ret);
+    ProcessToServeRequest(wr);
+    delete wr;
+    delete parent;
+  } else { // 还需要继续等待处理响应
+    directory.unlock(localBlock);
+    parent->unlock();
+  }
+}
+
+void Worker::processPendingWriteForward(Client *client, WorkRequest *wr) {
+  /**
+   * WRITE_FORWARD
+   *    parent = WRITE | WRITE_PERMISSION_ONLY (Worker::processRemoteWriteSubBlock)
+   */
+  epicInfo("process pending write forward from worker %d. wr=%s", client->GetWorkerId(), ToString(wr).c_str());
+  epicAssert(wr->op == WRITE_FORWARD);
+  epicAssert(wr->parent);
+  epicAssert(IsLocal(wr->addr));
+
+  void *localAddr = ToLocal(wr->addr);
+  GAddr block = TOBLOCK(wr->addr);
+  void *localBlock = ToLocal(block);
+
+  WorkRequest *parent = wr->parent;
+  DirEntry *entry = directory.GetEntry(localBlock);
+  epicAssert(wr->pid == parent->id);
+
+  Client *remoteClient = FindClientWid(wr->pwid);
+
+  directory.lock(localBlock);
+  auto subEntry = entry->findSubEntry(parent);
+  if (subEntry == entry->subEntries.end()) {
+    epicFatal("no sub-block for %lx(size=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+  }
+  subEntry->toDirty();
+  subEntry->sharers.clear();
+  subEntry->addSharer(wr->pwid);
+  directory.unlock(localBlock);
+
+  // TODO@xmx: 这里需要检查是否达到划分子块的阈值
+  remoteClient->WriteWithImm(parent->ptr, localAddr, parent->size, parent->id);
+  epicInfo("sent sub-block%s to worker %d", ToString(*subEntry).c_str(), wr->pwid);
+
+  int ret = ErasePendingWork(wr->id);
+  epicAssert(ret);
+  ProcessToServeRequest(wr);
+  delete wr;
+  delete parent;
+}
+
+/* add xmx add */

@@ -84,7 +84,10 @@ int Log::writeToBuf(void* ptr, Size size, int spos) {
   } else {
     int bytesToEnd = BUF_SIZE - spos;
     memcpy(spos + buf_, ptr, bytesToEnd);
-    memcpy(buf_, ptr + bytesToEnd, size - bytesToEnd);
+    /* add xmx add */
+    //memcpy(buf_, ptr + bytesToEnd, size - bytesToEnd);
+    memcpy(buf_, static_cast<char *>(ptr) + bytesToEnd, size - bytesToEnd);
+    /* add xmx add */
     return size - bytesToEnd;
   }
 }

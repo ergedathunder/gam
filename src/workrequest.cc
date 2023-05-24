@@ -109,7 +109,7 @@ int WorkRequest::Ser(char* buf, int& len) {
 #ifdef GFUNC_SUPPORT
     {
       int gid = GetGFuncID(gfunc);
-      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, gid, arg);
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, gid, arg,/* add xmx add */metaVersion);
       if (flag & GFUNC)
         epicAssert(gid != -1);
     }
@@ -121,7 +121,7 @@ int WorkRequest::Ser(char* buf, int& len) {
 #endif
 
 #else
-      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag);
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, /* add xmx add */metaVersion);
 #ifdef SELECTIVE_CACHING
       if(flag & NOT_CACHE) {
         memcpy(buf+len, ptr, size);
@@ -134,19 +134,19 @@ int WorkRequest::Ser(char* buf, int& len) {
 #ifdef GFUNC_SUPPORT
     {
       int gid = GetGFuncID(gfunc);
-      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, gid, arg);
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, gid, arg,/* add xmx add */metaVersion);
       if (flag & GFUNC)
         epicAssert(gid != -1);
     }
 #else
-      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag);
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag,/* add xmx add */metaVersion);
 #endif
       break;
     case READ:
     case FETCH_AND_SHARED:
     case FETCH_AND_INVALIDATE:
     case INVALIDATE:
-      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag);
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag,/* add xmx add */metaVersion);
       break;
     case READ_FORWARD:
     case WRITE_FORWARD:
@@ -163,15 +163,46 @@ int WorkRequest::Ser(char* buf, int& len) {
       case UNLOCK_REPLY:
 #endif
 #endif
-      len = appendInteger(buf, lop, id, wid, status);
+      len = appendInteger(buf, lop, id, wid, status,/* add xmx add */flag, metaVersion);
       break;
     case WRITE_REPLY:
-      len = appendInteger(buf, lop, id, wid, status, counter.load());
+      len = appendInteger(buf, lop, id, wid, status, counter.load(),/* add xmx add */flag, metaVersion);
       break;
     case ACTIVE_INVALIDATE:
     case WRITE_BACK:
       len = appendInteger(buf, lop, id, wid, addr, ptr);
       break;
+    /* add xmx add */
+    case FETCH_SUB_BLOCK_META:
+      len = appendInteger(buf, lop, id, wid, addr, ptr);
+      break;
+    case CREATE_MUTEX:
+      len = appendInteger(buf, lop, id, wid, key);
+      memcpy(buf + len, ptr, key);
+      len += static_cast<int>(key);
+      break;
+    case MUTEX_LOCK:
+    case MUTEX_TRY_LOCK:
+    case MUTEX_UNLOCK:
+      len = appendInteger(buf, lop, id, wid, key);
+      break;
+    case MUTEX_REPLY:
+      len = appendInteger(buf, lop, id, wid, key, status);
+      break;
+
+    case CREATE_SEM:
+      len = appendInteger(buf, lop, id, wid, key, size);
+      memcpy(buf + len, ptr, key);
+      len += static_cast<int>(key);
+      break;
+    case SEM_POST:
+    case SEM_WAIT:
+      len = appendInteger(buf, lop, id, wid, key);
+      break;
+    case SEM_REPLY:
+      len = appendInteger(buf, lop, id, wid, key, size, status);
+      break;
+    /* add xmx add */
 
     default:
       epicLog(LOG_WARNING, "unrecognized op code");
@@ -285,7 +316,7 @@ int WorkRequest::Deser(const char* buf, int& len) {
     {
 #ifdef GFUNC_SUPPORT
       int gid = 0;
-      p += readInteger(p, id, wid, addr, size, ptr, flag, gid, arg);
+      p += readInteger(p, id, wid, addr, size, ptr, flag, gid, arg,/* add xmx add */metaVersion);
       gfunc = GetGFunc(gid);
       epicLog(LOG_DEBUG, "deser gid = %d, gfunc = %ld", gid, gfunc);
       if (!gfunc)
@@ -298,7 +329,7 @@ int WorkRequest::Deser(const char* buf, int& len) {
 #endif
 
 #else
-      p += readInteger(p, id, wid, addr, size, ptr, flag);
+      p += readInteger(p, id, wid, addr, size, ptr, flag,/* add xmx add */metaVersion);
 #ifdef SELECTIVE_CACHING
       if(flag & NOT_CACHE) {
         ptr = const_cast<char*>(p);
@@ -311,13 +342,13 @@ int WorkRequest::Deser(const char* buf, int& len) {
     case WRITE_PERMISSION_ONLY: {
 #ifdef GFUNC_SUPPORT
       int gid = 0;
-      p += readInteger(p, id, wid, addr, size, ptr, flag, gid, arg);
+      p += readInteger(p, id, wid, addr, size, ptr, flag, gid, arg,/* add xmx add */metaVersion);
       gfunc = GetGFunc(gid);
       epicLog(LOG_DEBUG, "deser gid = %d, gfunc = %ld", gid, gfunc);
       if (!gfunc)
         epicAssert(!(flag & GFUNC));
 #else
-      p += readInteger(p, id, wid, addr, size, ptr, flag);
+      p += readInteger(p, id, wid, addr, size, ptr, flag,/* add xmx add */metaVersion);
 #endif
       break;
     }
@@ -325,7 +356,7 @@ int WorkRequest::Deser(const char* buf, int& len) {
     case FETCH_AND_SHARED:
     case FETCH_AND_INVALIDATE:
     case INVALIDATE:
-      p += readInteger(p, id, wid, addr, size, ptr, flag);
+      p += readInteger(p, id, wid, addr, size, ptr, flag,/* add xmx add */metaVersion);
       break;
     case READ_FORWARD:
     case WRITE_FORWARD:
@@ -342,17 +373,49 @@ int WorkRequest::Deser(const char* buf, int& len) {
       case UNLOCK_REPLY:
 #endif
 #endif
-      p += readInteger(p, id, wid, status);
+      p += readInteger(p, id, wid, status,/* add xmx add */flag, metaVersion);
       break;
     case WRITE_REPLY:
       int c;
-      p += readInteger(p, id, wid, status, c);
+      p += readInteger(p, id, wid, status, c,/* add xmx add */flag, metaVersion);
       counter = c;
       break;
     case ACTIVE_INVALIDATE:
     case WRITE_BACK:
       p += readInteger(p, id, wid, addr, ptr);
       break;
+
+    /* add xmx add */
+    case FETCH_SUB_BLOCK_META:
+      p += readInteger(p, id, wid, addr, ptr);
+      break;
+    case CREATE_MUTEX:
+      p += readInteger(p, id, wid, key);
+      ptr = p;
+      len = static_cast<int>(key);
+      break;
+    case MUTEX_LOCK:
+    case MUTEX_TRY_LOCK:
+    case MUTEX_UNLOCK:
+      p += readInteger(p, id, wid, key);
+      break;
+    case MUTEX_REPLY:
+      p += readInteger(p, id, wid, key, status);
+      break;
+
+    case CREATE_SEM:
+      p += readInteger(p, id, wid, key, size);
+      ptr = p;
+      len = static_cast<int>(key);
+      break;
+    case SEM_POST:
+    case SEM_WAIT:
+      p += readInteger(p, id, wid, key);
+      break;
+    case SEM_REPLY:
+      p += readInteger(p, id, wid, key, size, status);
+      break;
+    /* add xmx add */
 
     default:
       epicLog(LOG_WARNING, "unrecognized op code %d", op);

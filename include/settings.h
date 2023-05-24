@@ -27,7 +27,9 @@ using namespace std;
 #define LRU_NUM 10
 //#define USE_APPR_LRU
 //#define SELECTIVE_CACHING
+/* add ergeda add */
 #define GFUNC_SUPPORT
+/* add ergeda add */
 
 //#define USE_PIPE_W_TO_H
 //#define USE_PIPE_H_TO_W
@@ -56,14 +58,20 @@ using namespace std;
 #ifdef USE_PIPE_H_TO_W
 #define USE_LOCAL_TIME_EVENT
 #endif
+/* add xmx add */
+# define MAX_SUB_BLOCK_META_SIZE 1024
+/* add xmx add */
 
 #define MAX_RW_TIME 20 //in microsecond
 
 #define MAX_SHARED_LOCK 254 //MAX(unsigned char)-1
 #define EXCLUSIVE_LOCK_TAG 255 //MAX(unsigned char)
-
+// add ergeda add
+//#define BLOCK_POWER 8
 #define BLOCK_POWER 9
 #define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
+//#define BLOCK_MASK 0xFFFFFFFFFFFFFF00L
+//add ergeda add
 #define BLOCK_SIZE (1 << BLOCK_POWER)
 
 #define RDMA_RESOURCE_EXCEPTION 1

@@ -177,6 +177,9 @@ class Worker : public Server {
   atomic<Size> no_remote_writes_hit_;
   atomic<Size> no_remote_writes_direct_hit_;
 
+  /* add xmx add */
+  atomic<Size> pendingWrites;
+  /* add xmx add */
   // logging
   void logWrite(GAddr addr, Size sz, const void* content) {
     //log->logWrite(addr, sz, content);
@@ -317,6 +320,45 @@ class Worker : public Server {
     epicLog (LOG_WARNING, "Worker %d implement Func : %s with op : %d, addr : %llx, flag : %x, size : %d", GetWorkerId(), Func, wr->op, wr->addr, wr->flag, wr->size);
   }
   /* add ergeda add */
+
+  /* add xmx add */
+  Fence *getFence(int fd) {
+    return fences_.at(fd);
+  }
+  /**
+   * 获取子块的第一个共享节点的地址对应的client，一般用于dirty的子块（此时该节点是拥有者）
+   * @param subDirEntry 子块
+   * @return 正常情况下返回正确的client，若第一个共享节点的地址为Gnullptr则返回nullptr
+   */
+  Client *getOwnerClient(const SubDirEntry &subDirEntry);
+
+  const HashTable<unsigned int, WorkRequest *> &getPendingWorks() const {
+    return pending_works;
+  }
+
+  void processRemoteFetchSubBlockMeta(Client* client, WorkRequest *wr);
+  void processPendingFetchSubBlockMeta(Client *client, WorkRequest *wr);
+
+  int processLocalReadSubBlock(WorkRequest *wr);
+  void processRemoteReadSubBlock(Client *client, WorkRequest *wr);
+  void processRemoteReadSubCache(Client *client, WorkRequest *wr);
+  void processPendingReadSubBlock(Client *client, WorkRequest *wr);
+  void processRemoteReadSubBlockReply(Client *client, WorkRequest *wr);
+  void processPendingReadForward(Client *client, WorkRequest *wr);
+
+  int processLocalWriteSubBlock(WorkRequest *wr);
+  void processRemoteWriteSubBlock(Client* client, WorkRequest *wr);
+  void processRemoteWriteSubCache(Client *client, WorkRequest *wr);
+  void processPendingWriteSubBlock(Client *client, WorkRequest *wr);
+  void processRemoteWriteSubBlockReply(Client *client, WorkRequest *wr);
+  void processPendingInvalidateForward(Client *client, WorkRequest *wr);
+  void processPendingWriteForward(Client *client, WorkRequest *wr);
+
+  int processLocalMutex(WorkRequest *wr);
+  void processRemoteMutexReply(Client *client, WorkRequest *wr);
+  int processLocalSem(WorkRequest *wr);
+  void processRemoteSemReply(Client *client, WorkRequest *wr);
+  /* add xmx add */
 
 #ifdef DHT
   int ProcessLocalHTable(WorkRequest* wr);

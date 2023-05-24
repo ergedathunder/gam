@@ -331,3 +331,51 @@ int GAlloc::HTable(void* addr) {
 GAlloc::~GAlloc() {
   delete wh;
 }
+
+/* add xmx add */
+void GMutex::lock() {
+  if (manager.expired()) {
+    epicFatal("lock(%lu) failed: invalid GMemoryManager", key);
+    return;
+  }
+
+  manager.lock()->lock(*this);
+}
+
+bool GMutex::tryLock() {
+  if (manager.expired()) {
+    epicFatal("lock(%lu) failed: invalid GMemoryManager", key);
+    return false;
+  }
+
+  return manager.lock()->tryLock(*this);
+}
+
+void GMutex::unlock() {
+  if (manager.expired()) {
+    epicFatal("lock(%lu) failed: invalid GMemoryManager", key);
+    return;
+  }
+
+  manager.lock()->unlock(*this);
+}
+
+
+GSemaphore::Value GSemaphore::wait() {
+  if (manager.expired()) {
+    epicFatal("wait(%lu) failed: invalid GMemoryManager", key);
+    return std::numeric_limits<GSemaphore::Value>::min();
+  }
+
+  return value = manager.lock()->wait(*this);
+}
+
+GSemaphore::Value GSemaphore::post() {
+  if (manager.expired()) {
+    epicFatal("post(%lu) failed: invalid GMemoryManager", key);
+    return std::numeric_limits<GSemaphore::Value>::min();;
+  }
+
+  return value = manager.lock()->post(*this);
+}
+/* add xmx add */

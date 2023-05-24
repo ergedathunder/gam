@@ -1,6 +1,12 @@
 // Copyright (c) 2018 The GAM Authors 
 
 void Worker::ProcessRemoteRead(Client* client, WorkRequest* wr) {
+/* add xmx add */
+  if (wr->flag & Write_shared) {
+    processRemoteReadSubBlock(client, wr);
+    return;
+  }
+/* add xmx add */
   //Just_for_test("remote read", wr);
   epicAssert(IsLocal(wr->addr));
 #ifdef SELECTIVE_CACHING
@@ -87,7 +93,13 @@ void Worker::ProcessRemoteRead(Client* client, WorkRequest* wr) {
   directory.unlock(laddr);
 }
 
-void Worker::ProcessRemoteReadCache(Client* client, WorkRequest* wr) {
+void Worker::ProcessRemoteReadCache(Client* client, WorkRequest* wr) { 
+  /* add xmx add */
+  if (wr->flag & Write_shared) {
+    processRemoteReadSubCache(client, wr);
+    return;
+  }
+  /* add xmx add */
   Work op_orin = wr->op;
   bool deadlock = false;
 #ifndef SELECTIVE_CACHING
@@ -203,6 +215,12 @@ void Worker::ProcessRemoteReadCache(Client* client, WorkRequest* wr) {
 }
 
 void Worker::ProcessRemoteReadReply(Client* client, WorkRequest* wr) {
+  /* add xmx add */
+  if (wr->flag & Write_shared) {
+    processRemoteReadSubBlockReply(client, wr);
+    return;
+  }
+  /* add xmx add */
   /*
    * READ/RLock failed case,
    * as normal successful case is through write_with_imm
@@ -277,6 +295,12 @@ void Worker::ProcessRemoteReadReply(Client* client, WorkRequest* wr) {
 }
 
 void Worker::ProcessRemoteWrite(Client* client, WorkRequest* wr) {
+  /* add xmx add */
+  if (wr->flag & Write_shared) {
+    processRemoteWriteSubBlock(client, wr);
+    return;
+  }
+  /* add xmx add */
   Work op_orin = wr->op;
 #ifndef SELECTIVE_CACHING
   epicAssert(wr->size == BLOCK_SIZE);
@@ -470,6 +494,12 @@ void Worker::ProcessRemoteWrite(Client* client, WorkRequest* wr) {
 }
 
 void Worker::ProcessRemoteWriteCache(Client* client, WorkRequest* wr) {
+  /* add xmx add */
+  if (wr->flag & Write_shared) {
+    processRemoteWriteSubCache(client, wr);
+    return;
+  }
+  /* add xmx add */
   epicAssert(wr->op != WRITE_PERMISSION_ONLY_FORWARD);  //this cannot happen
   Work op_orin = wr->op;
   bool deadlock = false;
@@ -690,6 +720,12 @@ void Worker::ProcessRemoteWriteCache(Client* client, WorkRequest* wr) {
 }
 
 void Worker::ProcessRemoteWriteReply(Client* client, WorkRequest* wr) {
+  /* add xmx add */
+  if (wr->flag & Write_shared) {
+    processRemoteWriteSubBlockReply(client, wr);
+    return;
+  }
+  /* add xmx add */
   WorkRequest* pwr = GetPendingWork(wr->id);
   epicAssert(pwr);
   epicAssert(pwr->id == wr->id);
@@ -1221,3 +1257,827 @@ void Worker::ProcessRemoteWeInv(Client * client, WorkRequest * wr) {
 }
 
 /* add ergeda add */
+
+/* add xmx add */
+void Worker::processRemoteFetchSubBlockMeta(Client *client, WorkRequest *wr) {
+  //Just_for_test("fetchblockmeta", wr);
+  epicAssert(IsLocal(wr->addr));
+  epicAssert(BLOCK_ALIGNED(wr->addr));
+
+  epicInfo("worker %d fetch meta for addr %lx", client->GetWorkerId(), wr->addr);
+  void *localBlock = ToLocal(wr->addr);
+  GAddr block = TOBLOCK(wr->addr);
+  directory.lock(localBlock);
+  DirEntry *entry = directory.GetEntry(localBlock);
+
+  int len = 0;
+  char *buf = static_cast<char *>(sb.sb_malloc(MAX_SUB_BLOCK_META_SIZE));
+  void *remotePtr = wr->ptr;
+  auto remoteId = wr->id;
+
+  if (!entry) {
+    entry = directory.newEntry(block, localBlock);
+//    for (int i = 0; i < BLOCK_SIZE; ++i) {
+//      *((char *) (ToLocal(block)) + i) = '$';
+//    }
+  }
+
+  /**
+   * 传输格式：4字节metaVersion，4字节长度n，n个8字节的子块分割线（地址）
+   */
+  if (entry) {
+    len += appendInteger(buf + len, entry->metaVersion);
+    len += appendInteger(buf + len, static_cast<int>(entry->subEntries.size() - 1));
+    auto subEntry = entry->subEntries.cbegin();
+    // 跳过第一个子块，因为它的start就是整块的block，我们只需要传分割线，所以实际不需要传输
+    ++subEntry;
+    while (subEntry != entry->subEntries.cend()) {
+      if (len + 8 > MAX_SUB_BLOCK_META_SIZE) {
+        epicFatal("length of meta for %lx > %d", wr->addr, MAX_SUB_BLOCK_META_SIZE);
+      }
+      len += appendInteger(buf + len, subEntry->start);
+      ++subEntry;
+    }
+  } else { // unshared
+    len += appendInteger(buf + len, 0); // metaVersion
+    len += appendInteger(buf + len, 0); // len
+  }
+  directory.unlock(localBlock);
+  // 方便发送完成后删除缓冲区
+  wr->ptr = buf;
+  wr->id = GetWorkPsn();
+  AddToPending(wr->id, wr);
+  client->WriteWithImm(remotePtr, wr->ptr, len, remoteId, wr->id, true);
+  epicInfo("sent meta to worker %d(wr.id=%d), addr = %lx, meta len = %d",
+           client->GetWorkerId(), remoteId, wr->addr, len);
+}
+
+void Worker::processRemoteReadSubBlock(Client *client, WorkRequest *wr) {
+  //Just_for_test("readsubblock", wr);
+  epicInfo("remote read sub-block %lx(length=%ld) from worker %d", wr->addr, wr->size, client->GetWorkerId());
+  epicAssert(IsLocal(wr->addr));
+  epicAssert(wr->size <= BLOCK_SIZE);
+
+  void *localAddr = ToLocal(wr->addr);
+  GAddr block = TOBLOCK(wr->addr);
+  void *localBlock = ToLocal(block);
+
+  directory.lock(localBlock);
+  DirEntry *entry = directory.GetEntry(localAddr);
+  if (!entry) {
+    entry = directory.newEntry(block, localBlock);
+  }
+
+  if (wr->metaVersion != entry->metaVersion) {
+    epicInfo("new meta for %lx required: remote id=%d, old version=%d, new version=%d",
+             wr->addr, wr->id, wr->metaVersion, entry->metaVersion);
+    wr->op = READ_REPLY;
+    wr->status = META_VERSION_REQUIRED;
+    wr->metaVersion = entry->metaVersion;
+    SubmitRequest(client, wr);
+    delete wr;
+    directory.unlock(localBlock);
+    return;
+  }
+
+  auto subEntry = entry->findSubEntry(wr);
+  if (subEntry == entry->subEntries.end()) {
+    epicFatal("read error! no sub-block for %lx(length=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+    wr->op = READ_REPLY;
+    wr->status = META_VERSION_REQUIRED;
+    wr->metaVersion = entry->metaVersion;
+    SubmitRequest(client, wr);
+    delete wr;
+    directory.unlock(localBlock);
+    return;
+  }
+
+  DirState state = subEntry->state;
+  if (directory.InTransitionState(state)) {
+    AddToServeRemoteRequest(block, client, wr);
+    epicInfo("sub-block in %s(%d). add to serve remote. wr=%s", ToCString(state), state, ToString(wr).c_str());
+    directory.unlock(localBlock);
+    return;
+  }
+
+  if (state != DIR_DIRTY) {  //it is shared or exclusively owned (Case 2)
+    client->WriteWithImm(wr->ptr, ToLocal(wr->addr), wr->size, wr->id);
+    subEntry->toShared();
+    subEntry->addSharer(client->GetWorkerId());
+    epicInfo("sent sub-block%s to worker %d", ToString(*subEntry).c_str(), client->GetWorkerId());
+    delete wr;
+  } else { // @xmx: dir_dirty
+    auto *wrReadForward = new WorkRequest(*wr);
+    wrReadForward->ptr = localAddr;
+    wrReadForward->counter = 0;
+    wrReadForward->op = READ_FORWARD;
+    wrReadForward->parent = wr;
+    wrReadForward->pid = wr->id;
+    wrReadForward->pwid = client->GetWorkerId();
+
+    Client *ownerClient = getOwnerClient(*subEntry);
+
+    subEntry->toToShared();
+    SubmitRequest(ownerClient, wrReadForward, ADD_TO_PENDING | REQUEST_SEND);
+    epicInfo("sub-block%s was dirty. sent wrReadForward%s to worker %d",
+             ToString(*subEntry).c_str(),
+             ToString(wrReadForward).c_str(),
+             ownerClient->GetWorkerId());
+  }
+  directory.unlock(localBlock);
+}
+
+void Worker::processRemoteReadSubCache(Client *client, WorkRequest *wr) {
+  //Just_for_test("fetchblockmeta", wr);
+  epicInfo("remote read sub-cache %lx(length=%ld) from worker %d", wr->addr, wr->size, client->GetWorkerId());
+  bool deadlock = false;
+  GAddr block = TOBLOCK(wr->addr);
+  cache.lock(block);
+  CacheLine *cacheLine = cache.GetCLine(block);
+
+  if (!cacheLine) {
+    epicFatal("unexpected: cannot find an updated copy");
+    wr->op = READ_REPLY;
+    wr->status = READ_ERROR;
+    SubmitRequest(client, wr);
+  } else { // @xmx: has cache line
+    auto subCache = cacheLine->findSubCache(wr);
+    if (subCache == cacheLine->subCaches.end()) {
+      epicFatal("no sub-cache for %lx(size=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+    }
+
+    CacheState state = subCache->state;
+    if (cache.InTransitionState(state)) {
+      if (state == CACHE_TO_DIRTY) {
+        AddToServeRemoteRequest(block, client, wr);
+        epicInfo("cache is in transition state %s(%d). add to serve remote", ToCString(state), state);
+        cache.unlock(block);
+        return;
+      } else { // @xmx: !CACHE_TO_DIRTY
+        //deadlock: this node wants to give up the ownership
+        //meanwhile, another node wants to read
+        epicWarning("deadlock detected");
+        epicAssert(state == CACHE_TO_INVALID);
+        deadlock = true;
+      }
+    }
+
+    // 写回home node
+    client->WriteWithImm(wr->ptr, static_cast<char *>(cacheLine->line) + (subCache->start - block), wr->size, wr->id);
+    epicInfo("sent sub-cache%s to worker %d", ToString(*subCache).c_str(), client->GetWorkerId());
+
+    if (!deadlock) {
+      subCache->toShared();
+    }
+  }
+  cache.unlock(block);
+  delete wr;
+}
+
+void Worker::processRemoteReadSubBlockReply(Client *client, WorkRequest *wr) {
+  //Just_for_test("fetchblockmeta", wr);
+  epicInfo("received read reply from worker %d. wr=%s", client->GetWorkerId(), ToString(wr).c_str());
+  /*
+   * READ failed case,
+   * as normal successful case is through write_with_imm
+   * which will call ProcessRequest(Client*, unsigned int)
+   */
+  epicAssert(META_VERSION_REQUIRED == wr->status || READ_ERROR == wr->status);
+  WorkRequest *pwr = GetPendingWork(wr->id);
+  epicAssert(pwr);
+  epicAssert(pwr->id == wr->id);
+  // 在GAM中，只有加锁或者尝试加锁时或者所有者没有缓存时才会读失败
+  // 目前sub-block未实现同步原语，因此目前只有 META_VERSION_REQUIRED 和 READ_ERROR 这2种失效情况
+
+  // 可能是read或sub-read
+  WorkRequest *parent = pwr->parent;
+  // 一定是read
+  WorkRequest *wrOrigin = parent->parent ? parent->parent : parent;
+
+  epicAssert(!wrOrigin->parent);
+  if (parent == wrOrigin) {
+    epicAssert(!(parent->flag & SUB_READ));
+  } else {
+    epicAssert(!(wrOrigin->flag & SUB_READ) && (parent->flag & SUB_READ));
+  }
+
+  parent->lock();
+  switch (wr->status) {
+    case META_VERSION_REQUIRED: {
+      CacheLine *cacheLine = cache.GetCLine(pwr->addr);
+      GAddr block = TOBLOCK(pwr->addr);
+      // TODO@xmx: 这里处理的不合理，应该重新申请缓存？
+      if (!cacheLine) {
+        epicFatal("cache line for %lx is not existed", block);
+        wrOrigin->status = READ_ERROR;
+        parent->unlock();
+        Notify(wrOrigin);
+        ErasePendingWork(pwr->id);
+        delete pwr;
+        delete wr;
+        return;
+      }
+
+      // 请求同一块的多个子块时，可能这一块发生了子块划分，导致后面子块的请求都返回了 META_VERSION_REQUIRED
+      // 这种情况下，第一个返回的请求的版本与本地不一致，后面返回的版本一致
+      if (cacheLine->metaVersion == wr->metaVersion) {
+        parent->counter--;
+      } else {
+        parent->counter--;
+
+        cache.lock(block);
+
+        auto subCache = cacheLine->findSubCache(pwr);
+        if (subCache != cacheLine->subCaches.end()) {
+          subCache->state = CACHE_INVALID;
+        }
+
+        cacheLine->state = CACHE_FETCHING_META;
+        // 原因见上。防止后面的子块的响应都返回 META_VERSION_REQUIRED 时本节点重复请求meta
+        cacheLine->metaVersion = wr->metaVersion;
+        cache.unlock(block);
+
+        epicInfo("new cache meta for addr %lx required, now fetching block meta data", block);
+        // 转到远程节点的 processRemoteFetchSubBlockMeta 然后转到本地的 processPendingFetchSubBlockMeta
+        auto wrMeta = new WorkRequest(*wr);
+        wrMeta->op = FETCH_SUB_BLOCK_META;
+        wrMeta->counter = 0;
+        wrMeta->addr = block;
+        wrMeta->ptr = sb.sb_malloc(MAX_SUB_BLOCK_META_SIZE);
+        wrMeta->parent = wrOrigin;
+        wrOrigin->counter++;
+
+        wrOrigin->is_cache_hit_ = false;
+        parent->counter++;
+        AddToServeLocalRequest(block, parent);
+        epicInfo("add to serve local: wr=%s", ToString(parent).c_str());
+
+        SubmitRequest(client, wrMeta, ADD_TO_PENDING | REQUEST_SEND);
+        epicInfo("add to pending: wrMeta=%s", ToString(wrMeta).c_str());
+      }
+      break;
+    }
+
+    case READ_ERROR: {
+      switch (pwr->op) {
+        case READ: {
+          epicFatal("shouldn't happen");
+          break;
+        }
+
+        case READ_FORWARD: {
+          DirEntry *entry = directory.GetEntry(ToLocal(TOBLOCK(pwr->addr)));
+          directory.lock(ToLocal(TOBLOCK(pwr->addr)));
+          auto subEntry = entry->findSubEntry(pwr);
+          if (subEntry == entry->subEntries.end()) {
+            epicFatal("read error! no sub-block for %lx(length=%ld). wr=%s", wr->addr, wr->size, ToString(pwr).c_str());
+          }
+          subEntry->toShared();
+          subEntry->sharers.clear();
+          subEntry->addSharer(pwr->pwid);
+
+          Client *remoteClient = FindClientWid(pwr->pwid);
+          remoteClient->WriteWithImm(parent->ptr, ToLocal(parent->addr), parent->size, parent->id);
+          epicInfo("sent sub-block%s to worker %d", ToString(*subEntry).c_str(), pwr->pwid);
+          directory.unlock(ToLocal(TOBLOCK(pwr->addr)));
+          // parent = READ (remote)
+          parent->unlock();
+
+          ErasePendingWork(pwr->id);
+          ProcessToServeRequest(pwr);
+
+          delete parent;
+          delete pwr;
+          delete wr;
+          return;
+        }
+
+        case FETCH_AND_SHARED: {
+          DirEntry *entry = directory.GetEntry(ToLocal(TOBLOCK(pwr->addr)));
+          directory.lock(ToLocal(TOBLOCK(pwr->addr)));
+          auto subEntry = entry->findSubEntry(pwr);
+          if (subEntry == entry->subEntries.end()) {
+            epicFatal("read error! no sub-block for %lx(length=%ld). wr=%s", wr->addr, wr->size, ToString(pwr).c_str());
+          }
+          subEntry->toUnshared();
+          subEntry->sharers.clear();
+
+          GAddr parentEnd = GADD(parent->addr, parent->size);
+          GAddr end = GADD(pwr->addr, pwr->size);
+          GAddr cpyStart = max(pwr->addr, parent->addr);
+          void *dstStart = static_cast<char *>(parent->ptr) + (cpyStart - parent->addr);
+          void *srcStart = static_cast<char *>(pwr->ptr) + (cpyStart - pwr->addr);
+          size_t len = min(end, parentEnd) - cpyStart;
+          memcpy(dstStart, srcStart, len);
+
+          epicInfo("copied %lu bytes from wr=%s to sub-block(%s)",
+                   len, ToString(parent).c_str()), ToString(*subEntry).c_str();
+          directory.unlock(ToLocal(TOBLOCK(pwr->addr)));
+          break;
+        }
+
+        default:;
+      }
+      break;
+    }
+
+    default: {
+      epicWarning("unknown read reply status %d", wr->status);
+    }
+  }
+
+  ErasePendingWork(pwr->id);
+
+  if (parent->flag & SUB_READ) {
+    epicWarning("parent-counter=%d", parent->counter.load());
+    parent->unlock();
+    if (parent->counter == 0) {
+      wrOrigin->counter--;
+      delete parent;
+      if (wrOrigin->counter == 0) {
+        Notify(wrOrigin);
+      }
+    }
+  } else {
+    epicAssert(parent == wrOrigin);
+    epicWarning("origin-counter=%d", parent->counter.load());
+    parent->unlock();
+    if (parent->counter == 0) {
+      Notify(wrOrigin);
+    }
+  }
+
+  ProcessToServeRequest(pwr);
+  delete pwr;
+  delete wr;
+}
+
+void Worker::processRemoteWriteSubBlock(Client *client, WorkRequest *wr) {
+  /**
+   * operation                      dir state       action
+   * ================================================================
+   * *                              -               WRITE_REPLY
+   * ================================================================
+   * WRITE, WRITE_PERMISSION_ONLY   [Transition]    ToServeRemote
+   * ================================================================
+   * WRITE                          DIR_SHARED      INVALIDATE_FORWARD
+   *                                DIR_UNSHARED    WriteWithImm
+   *                                DIR_DIRTY       WRITE_FORWARD
+   * ================================================================
+   * WRITE_PERMISSION_ONLY          DIR_SHARED      INVALIDATE_FORWARD
+   *                                DIR_UNSHARED    WriteWithImm (dead lock)
+   *                                DIR_DIRTY       WRITE_FORWARD
+   */
+  epicInfo("remote write sub-block %lx(length=%ld) from worker %d", wr->addr, wr->size, client->GetWorkerId());
+  epicAssert(IsLocal(wr->addr));
+  void *localAddr = ToLocal(wr->addr);
+  GAddr block = TOBLOCK(wr->addr);
+  void *localBlock = ToLocal(block);
+
+  directory.lock(localBlock);
+  DirEntry *entry = directory.GetEntry(localAddr);
+  if (!entry) {
+    entry = directory.newEntry(block, localBlock);
+  }
+
+  if (wr->metaVersion != entry->metaVersion) {
+    epicInfo("new meta for %lx required: remote id=%d, old version=%d, new version=%d",
+             wr->addr, wr->id, wr->metaVersion, entry->metaVersion);
+    wr->op = WRITE_REPLY;
+    wr->status = META_VERSION_REQUIRED;
+    wr->metaVersion = entry->metaVersion;
+    SubmitRequest(client, wr);
+    directory.unlock(localBlock);
+    delete wr;
+    return;
+  }
+
+  auto subEntry = entry->findSubEntry(wr);
+  if (subEntry == entry->subEntries.end()) {
+    epicFatal("write error! no sub-block for %lx(length=%ld)", wr->addr, wr->size);
+    wr->op = WRITE_REPLY;
+    wr->status = META_VERSION_REQUIRED;
+    wr->metaVersion = entry->metaVersion;
+    SubmitRequest(client, wr);
+    delete wr;
+    directory.unlock(localBlock);
+    return;
+  }
+
+  DirState state = subEntry->state;
+  if (directory.InTransitionState(state)) {
+    AddToServeRemoteRequest(block, client, wr);
+    epicInfo("sub-block in %s(%d). add to serve remote. wr=%s", ToCString(state), state, ToString(wr).c_str());
+    directory.unlock(localBlock);
+    return;
+  }
+
+  if (state == DIR_SHARED) {
+    auto &sharers = subEntry->sharers;
+    // 转到远程节点的 Worker::processRemoteWriteSubCache
+    // 收到响应后转到 Worker::processPendingInvalidateForward
+    auto wrInvalidate = new WorkRequest(*wr);
+    wrInvalidate->op = INVALIDATE_FORWARD;
+    wrInvalidate->parent = wr;
+    wrInvalidate->id = GetWorkPsn();
+    wrInvalidate->pwid = client->GetWorkerId();
+    wrInvalidate->counter = static_cast<int>(sharers.size());
+
+    bool first = true;
+    // 将无效化消息发送给每一个共享者
+    for (auto sharer: sharers) {
+      Client *sharerClient = FindClientWid(sharer);
+      // 是请求写入的节点，无需无效化其缓存，跳过
+      if (sharerClient == client) {
+        epicAssert(wr->op == WRITE_PERMISSION_ONLY);
+        wrInvalidate->counter--;
+        continue;
+      }
+      // 只用添加一次
+      if (first) {
+        AddToPending(wrInvalidate->id, wrInvalidate);
+        first = false;
+      }
+      SubmitRequest(sharerClient, wrInvalidate);
+      epicInfo("sub-block%s was shared. sent wrInvalidate%s to worker %d",
+               ToString(*subEntry).c_str(),
+               ToString(wrInvalidate).c_str(),
+               sharerClient->GetWorkerId());
+    }
+    // 需要等待无效化消息的响应
+    if (wrInvalidate->counter) {
+      subEntry->toToDirty();
+      directory.unlock(localBlock);
+    } else { // 不需要无效化其他副本，此时该子块只有一个副本，即请求 WRITE_PERMISSION_ONLY 的节点，直接发送所有权转移的消息即可
+      epicAssert(wr->op == WRITE_PERMISSION_ONLY);
+      // 所有者就是该节点
+      epicAssert(subEntry->sharers.size() == 1 && subEntry->sharers.front() == client->GetWorkerId());
+      subEntry->toDirty();
+      directory.unlock(localBlock);
+      // 转移所有权
+      client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+      epicInfo("transferred ownership of sub-block%s to worker %d", ToString(*subEntry).c_str(), client->GetWorkerId());
+      delete wrInvalidate;
+      delete wr;
+    }
+  } else if (state == DIR_UNSHARED) { // TODO@xmx: 这里需要检查是否已经达到子块划分的阈值
+    epicAssert(wr->size == subEntry->size());
+    epicAssert(subEntry->sharers.empty());
+    client->WriteWithImm(wr->ptr, localAddr, wr->size, wr->id);
+    subEntry->toDirty();
+    subEntry->sharers.clear();
+    subEntry->addSharer(client->GetWorkerId());
+    directory.unlock(localBlock);
+    epicInfo("sent sub-block%s to worker %d", ToString(*subEntry).c_str(), client->GetWorkerId());
+
+    if (WRITE_PERMISSION_ONLY == wr->op) {
+      //deadlock: one node (Node A) wants to update its cache from shared to dirty,
+      //but at the same time, the home nodes invalidates all its shared copy (due to a local write)
+      //currently, dir_state == dir_unshared (after pend the request because it was dir_to_unshared)
+      //solution: Node A acts as it is still a shared copy so that the invalidation can completes,
+      //after which, home node processes the pending list and change the WRITE_PERMISSION_ONLY to WRITE
+      epicWarning("deadlock detected");
+    }
+    delete wr;
+  } else if (state == DIR_DIRTY) {  //Case 4 DIRTY
+    // 转到远程节点的 Worker::processRemoteWriteSubCache
+    // 收到响应后转到 Worker::processPendingWriteForward
+    auto wrWriteForward = new WorkRequest(*wr);
+    wrWriteForward->ptr = localAddr;
+    wrWriteForward->counter = 0;
+    wrWriteForward->op = WRITE_FORWARD;
+    wrWriteForward->parent = wr;
+    wrWriteForward->pid = wr->id;
+    wrWriteForward->pwid = client->GetWorkerId();
+
+    Client *ownerClient = getOwnerClient(*subEntry);
+    subEntry->toToDirty();
+    SubmitRequest(ownerClient, wrWriteForward, ADD_TO_PENDING | REQUEST_SEND);
+    directory.unlock(localBlock);
+    epicInfo("sub-block%s was dirty. sent wrWriteForward%s to worker %d",
+             ToString(*subEntry).c_str(),
+             ToString(wrWriteForward).c_str(),
+             ownerClient->GetWorkerId());
+  }
+}
+
+void Worker::processRemoteWriteSubCache(Client *client, WorkRequest *wr) {
+  /**
+   * INVALIDATE:
+   * INVALIDATE_FORWARD:
+   * FETCH_AND_INVALIDATE:
+   * WRITE_FORWARD:
+   */
+  epicInfo("remote write sub-cache %lx(length=%ld) from worker %d", wr->addr, wr->size, client->GetWorkerId());
+  bool deadlock = false;
+  epicAssert(!IsLocal(wr->addr));
+  //we hold an updated copy of the line (WRITE_FORWARD: Case 4)
+  GAddr block = TOBLOCK(wr->addr);
+  cache.lock(block);
+  CacheLine *cacheLine = cache.GetCLine(block);
+
+  if (!cacheLine) { // 本地不存在该cache line
+    if (INVALIDATE == wr->op || INVALIDATE_FORWARD == wr->op) {
+      client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+      epicInfo("%s reply to worker %d. wr=%s", ToCString(wr->op), client->GetWorkerId(), ToString(wr).c_str());
+    } else {
+      epicFatal("unexpected: cannot find an updated copy");
+      wr->op = WRITE_REPLY;
+      wr->status = WRITE_ERROR;
+      SubmitRequest(client, wr);
+    }
+    delete wr;
+  } else {
+    auto subCache = cacheLine->findSubCache(wr);
+    if (subCache == cacheLine->subCaches.end()) {
+      epicFatal("no sub-cache for %lx(size=%ld). wr=%s", wr->addr, wr->size, ToString(wr).c_str());
+    }
+
+    CacheState state = subCache->state;
+    if (cache.InTransitionState(state)) {
+      /*
+       * deadlock, since the responding node must just change its cache state
+       * and send request to home node,
+       * who was not notified of the change and sent an invalidate/forward request.
+       * How to solve?
+       * there are two causes: cache from shared to dirty (ToDirty State)
+       * cache from dirty to invalid (ToInvalid state)
+       */
+      if ((INVALIDATE == wr->op || INVALIDATE_FORWARD == wr->op)
+          && state == CACHE_TO_DIRTY) {
+        //deadlock case 1
+        epicWarning("deadlock detected");
+        deadlock = true;
+      } else {
+        if (state == CACHE_TO_INVALID) {
+          //deadlock case 2
+          epicWarning("deadlock detected");
+          deadlock = true;
+        } else {
+          AddToServeRemoteRequest(block, client, wr);
+          epicInfo("cache in transition state %s(%d)", ToCString(state), state);
+          cache.unlock(block);
+          return;
+        }
+      }
+    }
+
+    if (wr->op == FETCH_AND_INVALIDATE) {
+      epicAssert(state == CACHE_DIRTY || cache.InTransitionState(state));
+      if (deadlock) {
+        // 写回home node
+        client->WriteWithImm(wr->ptr,
+                             static_cast<char *>(cacheLine->line) + (subCache->start - cacheLine->addr),
+                             wr->size,
+                             wr->id);
+        epicInfo("sent sub-cache%s to worker %d", ToString(*subCache).c_str(), client->GetWorkerId());
+        delete wr;
+      } else {
+        client->WriteWithImm(wr->ptr,
+                             static_cast<char *>(cacheLine->line) + (subCache->start - cacheLine->addr),
+                             wr->size,
+                             wr->id);
+        epicInfo("sent sub-cache%s to worker %d", ToString(*subCache).c_str(), client->GetWorkerId());
+        subCache->toInvalid();
+        delete wr;
+      }
+
+    } else if (wr->op == INVALIDATE) {
+      epicAssert(state != CACHE_DIRTY);
+      client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+      if (!deadlock) {
+        subCache->toInvalid();
+      }
+      epicInfo("sent give-up ownership of sub-block%s to worker %d",
+               ToString(*subCache).c_str(), client->GetWorkerId());
+      delete wr;
+    } else if (wr->op == INVALIDATE_FORWARD) {
+      epicAssert(state != CACHE_DIRTY);
+      client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+      if (!deadlock) {
+        subCache->toInvalid();
+      }
+      epicInfo("sent give-up ownership of sub-block%s to worker %d",
+               ToString(*subCache).c_str(), client->GetWorkerId());
+      delete wr;
+    } else if (wr->op == WRITE_FORWARD) {
+      if (deadlock) {
+        // 写回home node
+        client->WriteWithImm(wr->ptr,
+                             static_cast<char *>(cacheLine->line) + (subCache->start - cacheLine->addr),
+                             wr->size,
+                             wr->id);
+        epicInfo("sent sub-cache%s to worker %d", ToString(*subCache).c_str(), client->GetWorkerId());
+        delete wr;
+      } else { // @xmx: !deadlock
+        subCache->toInvalid();
+        client->WriteWithImm(wr->ptr,
+                             static_cast<char *>(cacheLine->line) + (subCache->start - cacheLine->addr),
+                             wr->size,
+                             wr->id);
+        epicInfo("sent sub-cache%s to worker %d", ToString(*subCache).c_str(), client->GetWorkerId());
+        delete wr;
+      }
+    }
+  }
+  cache.unlock(block);
+}
+
+void Worker::processRemoteWriteSubBlockReply(Client *client, WorkRequest *wr) {
+  epicInfo("received write reply from worker %d. wr=%s", client->GetWorkerId(), ToString(wr).c_str());
+  /**
+   * META_VERSION_REQUIRED:
+   *    WRITE                   metaVersion不相等
+   *    WRITE_PERMISSION_ONLY   metaVersion不相等
+   *
+   * WRITE_ERROR:
+   *    FETCH_AND_INVALIDATE    owner不存在对应缓存行
+   *    WRITE_FORWARD           owner不存在对应缓存行
+   */
+  epicAssert(META_VERSION_REQUIRED == wr->status || WRITE_ERROR == wr->status);
+  WorkRequest *pwr = GetPendingWork(wr->id);
+  epicAssert(pwr);
+  epicAssert(pwr->id == wr->id);
+
+  WorkRequest *parent = pwr->parent;
+  WorkRequest *wrOrigin = parent->parent ? parent->parent : parent;
+
+  parent->lock();
+  switch (wr->status) {
+    case META_VERSION_REQUIRED: {
+      CacheLine *cacheLine = cache.GetCLine(pwr->addr);
+      GAddr block = TOBLOCK(pwr->addr);
+      if (!cacheLine) {
+        epicFatal("cache line for %lx is not existed", block);
+        wrOrigin->status = WRITE_ERROR;
+        parent->unlock();
+        Notify(wrOrigin);
+        ErasePendingWork(pwr->id);
+        delete pwr;
+        delete wr;
+        return;
+      }
+
+      // 请求同一块的多个子块时，可能这一块发生了子块划分，导致后面子块的请求都返回了 META_VERSION_REQUIRED
+      // 这种情况下，第一个返回的请求的版本与本地不一致，后面返回的版本一致
+      if (cacheLine->metaVersion == wr->metaVersion) {
+        parent->counter--;
+      } else {
+        parent->counter--;
+
+        cache.lock(block);
+
+        auto subCache = cacheLine->findSubCache(pwr);
+        if (subCache != cacheLine->subCaches.end()) {
+          subCache->toInvalid();
+        }
+
+        cacheLine->state = CACHE_FETCHING_META;
+        // 原因见上。防止后面的子块的响应都返回 META_VERSION_REQUIRED 时本节点重复请求meta
+        cacheLine->metaVersion = wr->metaVersion;
+        cache.unlock(block);
+
+        epicInfo("new cache meta for addr %lx required, now fetching block meta data", block);
+        // 转到远程节点的 processRemoteFetchSubBlockMeta 然后转到本地的 processPendingFetchSubBlockMeta
+        auto wrMeta = new WorkRequest(*wr);
+        wrMeta->op = FETCH_SUB_BLOCK_META;
+        wrMeta->counter = 0;
+        wrMeta->addr = block;
+        wrMeta->ptr = sb.sb_malloc(MAX_SUB_BLOCK_META_SIZE);
+        wrMeta->parent = wrOrigin;
+        wrOrigin->counter++;
+
+        wrOrigin->is_cache_hit_ = false;
+        parent->counter++;
+        AddToServeLocalRequest(block, parent);
+        epicInfo("add to serve local: wr=%s", ToString(parent).c_str());
+
+        SubmitRequest(client, wrMeta, ADD_TO_PENDING | REQUEST_SEND);
+        epicInfo("add to pending: wrMeta=%s", ToString(wrMeta).c_str());
+      }
+      break;
+    }
+
+    case WRITE_ERROR: {
+      epicAssert(pwr->op == FETCH_AND_INVALIDATE || pwr->op == WRITE_FORWARD);
+
+      directory.lock(ToLocal(TOBLOCK(parent->addr)));
+      DirEntry *entry = directory.GetEntry(ToLocal(TOBLOCK(parent->addr)));
+      auto subEntry = entry->findSubEntry(parent);
+
+      if (subEntry == entry->subEntries.end()) {
+        epicFatal("write error! no sub-block for %lx(length=%ld). wr=%s", wr->addr, wr->size, ToString(pwr).c_str());
+      }
+
+      if (pwr->op == WRITE_FORWARD) {
+        // parent 是远程的写
+        Client *remoteClient = FindClientWid(pwr->pwid);
+        remoteClient->WriteWithImm(parent->ptr, ToLocal(parent->addr), parent->size, parent->id);
+
+        subEntry->toDirty();
+        subEntry->sharers.clear();
+        subEntry->addSharer(pwr->pwid);
+
+        epicInfo("sent sub-block%s to worker %d", ToString(*subEntry).c_str(), pwr->pwid);
+        directory.unlock(ToLocal(TOBLOCK(parent->addr)));
+        parent->unlock();
+
+        ErasePendingWork(pwr->id);
+        ProcessToServeRequest(pwr);
+
+        delete parent;
+        delete pwr;
+        delete wr;
+        return;
+      } else if (pwr->op == FETCH_AND_INVALIDATE) {
+        // parent 是本地的写/子写
+        GAddr parentEnd = GADD(parent->addr, parent->size);
+        GAddr end = GADD(pwr->addr, pwr->size);
+        GAddr cpyStart = max(pwr->addr, parent->addr);
+        void *srcStart = static_cast<char *>(parent->ptr) + (cpyStart - parent->addr);
+        void *dstStart = static_cast<char *>(pwr->ptr) + (cpyStart - pwr->addr);
+        size_t len = min(end, parentEnd) - cpyStart;
+        memcpy(dstStart, srcStart, len);
+
+        subEntry->toUnshared();
+        subEntry->sharers.clear();
+        epicInfo("copied %lu bytes from wr=%s to sub-block(%s)",
+                 len, ToString(parent).c_str()), ToString(*subEntry).c_str();
+      }
+
+      directory.unlock(ToLocal(TOBLOCK(parent->addr)));
+      break;
+    }
+
+    default: {
+      epicWarning("unknown write reply status %d", wr->status);
+    }
+  }
+
+  ErasePendingWork(pwr->id);
+
+  if (parent->flag & SUB_WRITE) {
+    epicWarning("parent-counter=%d", parent->counter.load());
+    parent->unlock();
+    if (parent->counter == 0) {
+      wrOrigin->counter--;
+      delete parent;
+      if (wrOrigin->counter == 0) {
+        Notify(wrOrigin);
+      }
+    }
+  } else {
+    epicAssert(parent == wrOrigin);
+    epicWarning("origin-counter=%d", parent->counter.load());
+    parent->unlock();
+    if (parent->counter == 0) {
+      // WRITE_FORWARD 是转发远程节点的写入，不需要notify
+      if (pwr->op != WRITE_FORWARD) {
+        Notify(wrOrigin);
+      }
+    }
+  }
+
+  ProcessToServeRequest(pwr);
+  delete pwr;
+  delete wr;
+}
+
+void Worker::processRemoteMutexReply(Client *client, WorkRequest *wr) {
+  /**
+   * CREATE_MUTEX
+   * MUTEX_LOCK
+   * MUTEX_TRY_LOCK
+   * MUTEX_UNLOCK
+   */
+  WorkRequest *pwr = GetPendingWork(wr->id);
+  epicAssert(pwr->op == CREATE_MUTEX || pwr->op == MUTEX_LOCK || pwr->op == MUTEX_TRY_LOCK || pwr->op == MUTEX_UNLOCK);
+  if (pwr->op == CREATE_MUTEX) {
+    pwr->key = wr->key;
+  }
+  pwr->status = wr->status;
+
+  ErasePendingWork(wr->id);
+  Notify(pwr);
+  delete wr;
+}
+
+void Worker::processRemoteSemReply(Client *client, WorkRequest *wr) {
+  /**
+   * CREATE_SEM
+   * SEM_POST
+   * SEM_WAIT
+   */
+  WorkRequest *pwr = GetPendingWork(wr->id);
+  epicAssert(pwr->op == CREATE_SEM || pwr->op == SEM_POST || pwr->op == SEM_WAIT);
+  if (pwr->op == CREATE_SEM) {
+    pwr->key = wr->key;
+  }
+  pwr->size = wr->size;
+  pwr->status = wr->status;
+
+  ErasePendingWork(wr->id);
+  Notify(pwr);
+  delete wr;
+}
+/* add xmx add */

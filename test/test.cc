@@ -46,8 +46,9 @@ void Send_Fence (WorkerHandle * Cur_wh) {
 
 void Create_master() {
   Conf* conf = new Conf();
-  conf->loglevel = LOG_WARNING;
+  //conf->loglevel = LOG_INFO;
   //conf->loglevel = LOG_DEBUG;
+  conf->loglevel = LOG_WARNING;
   GAllocFactory::SetConf(conf);
   master = new Master(*conf);
 }
@@ -83,7 +84,7 @@ GAddr Malloc_addr(WorkerHandle * Cur_wh, const Size size, Flag flag, int Owner) 
   }
 #endif
 }
-
+ 
 void Read_val (WorkerHandle * Cur_wh, GAddr addr, int * val) {
   WorkRequest wr { };
   wr.op = READ;
@@ -122,7 +123,7 @@ atomic<int> Count;
 
 void PrivateRead(WorkerHandle * Cur_wh, GAddr addr, int * val, int num) {
   while (num --) {
-    int x = rand() % 4;
+    int x = rand() % 2;
     //if (x == 3) Read_val(Cur_wh, addr, val);
     if (x != 0) Read_val(Cur_wh, addr, val);
     else {
@@ -145,7 +146,7 @@ void Random_read(WorkerHandle * Cur_wh, GAddr addr, int * val, int num) {
 void Test_Portion() { //随机的读写，读写比例，节点自定义
   Count = 0;
   //GAddr addr = Malloc_addr(wh[1], sizeof(int), 0, 1);
-  GAddr addr = Malloc_addr(wh[2], BLOCK_SIZE, Access_exclusive, 3);  
+  GAddr addr = Malloc_addr(wh[2], BLOCK_SIZE, Write_shared, 3); 
   printf ("addr : %lld\n", addr);
   // Start iteration
   int Iteration = 100000;
@@ -156,7 +157,7 @@ void Test_Portion() { //随机的读写，读写比例，节点自定义
     std::list<std::thread*> threads;
     for (int i = 0; i < num_worker; ++i) {
        // 创建一个存储 std::thread 指针的容器
-      std::thread* thread_new = new std::thread(PrivateRead, wh[i], addr, &val, i == 2 ? 50 : 10);
+      std::thread* thread_new = new std::thread(PrivateRead, wh[i], addr, &val, i == 2 ? 90 : 10);
       threads.push_back(thread_new);
       
       //Read_val (wh[i], addr, &val);
@@ -178,7 +179,7 @@ void Test_Portion() { //随机的读写，读写比例，节点自定义
 
 void Test_random() { //随机的读写，读写比例，节点自定义
   Count = 0;
-  GAddr addr = Malloc_addr(wh[1], BLOCK_SIZE, Write_exclusive, 3);  
+  GAddr addr = Malloc_addr(wh[1], BLOCK_SIZE, Write_shared, 3); 
   printf ("addr : %lld\n", addr);
   // Start iteration
   int Iteration = 10000;
@@ -241,36 +242,100 @@ void Test_singleblock() {
   printf ("read val : %d\n", val);
 }
 
+void wsread(WorkerHandle * Cur_wh, GAddr addr, int * val, int num) {
+  while (num --) {
+    int x = rand() % 4;
+    //if (x == 3) Read_val(Cur_wh, addr, val);
+    if (x == 5) Read_val(Cur_wh, addr, val);
+    else {
+      Write_val(Cur_wh, addr, val);
+      Send_Fence(Cur_wh);
+    }
+  }
+}
+
+void Test_writeshared() {
+  Count = 0;
+  //GAddr addr = Malloc_addr(wh[1], sizeof(int), 0, 1);
+  GAddr addr = Malloc_addr(wh[2], 512, 0, 3);
+  GAddr addr1 = addr;
+  GAddr addr2 = addr + 300;
+  printf ("addr : %lld\n", addr);
+  // Start iteration
+  int Iteration = 1000000;
+  printf ("Start\n");
+  long Start = get_time();
+  for (int round = 0; round < Iteration; ++ round) {
+    int val = rand();
+    std::list<std::thread*> threads;
+    for (int i = 0; i < 2; ++i) {
+       // 创建一个存储 std::thread 指针的容器
+      std::thread* thread_new = new std::thread(wsread, wh[i], i == 0 ? addr1 : addr2, &val, 2);
+      threads.push_back(thread_new);
+    }
+
+    for (auto thread : threads) { thread->join(); } //阻塞主线程等待子线程执行完毕
+    for (auto thread : threads) { delete thread; }
+  }
+
+  printf ("read portion : %.5lf\n", 1.0 * 100000 / (1.0 * Count) );
+
+  long End = get_time();
+  printf ("End\n");
+  printf ("running time : %lld\n", End - Start);
+}
+
 void Solve (){
   Create_master();
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 5; ++i) {
     Create_worker();
   }
 
-  //sleep(1);
+  sleep(1);
   //Test_Communicate();
-  Test_Portion();
+  //Test_Portion();
+  //Test_writeshared();
   //Test_random();
   //return;
   //
   //Test_singleblock();
-  return;
+  //return;
 
-  GAddr addr = Malloc_addr(wh[1], BLOCK_SIZE, Write_exclusive, 3);  
+  GAddr addr = Malloc_addr(wh[1], BLOCK_SIZE, 0, 3);
   //GAddr addr2 = Malloc_addr(wh[1], BLOCK_SIZE, 0, 2);
   printf ("addr : %lld\n", addr);
   //printf ("addr2 : %lld\n", addr2);
   // Start iteration
   int Iteration = 100000;
-  printf ("Start\n"); 
+  printf ("Start Solve\n"); 
   long Start = get_time(); 
+  /* test read */
+  // printf ("start read\n");
+  // int test_val = 5;
+  // Write_val(wh[0], addr, &test_val);
+  // sleep(1);
+  // Send_Fence(wh[0]);
+  // int Readval[5]; 
+  // memset(Readval, 0, sizeof(Readval));
+  // Read_val (wh[0], addr, &Readval[0]);
+  // Read_val (wh[1], addr, &Readval[1]);
+  // Read_val (wh[2], addr, &Readval[2]);
+  // Read_val (wh[3], addr, &Readval[3]);
+  // Read_val (wh[4], addr, &Readval[4]);
+  // for (int i = 0; i < 5; ++i) {
+  //   printf( "node %d Read %d\n", i+1, Readval[i]);
+  // }
+  // printf ("End read\n");
+  // return;
+  /* test read */
   for (int round = 0; round < Iteration; ++ round) {
-    //printf ("Got to Round %d\n", round);
+    //printf ("Got to Round %d\n", round); 
     int x = rand() % num_worker;
     int val = rand();
     Write_val(wh[0], addr, &val); 
     int Lastval = val;
     Send_Fence(wh[0]);
+    
     bool flag = 0;
     //std::list<std::thread*> threads;
     Read_val (wh[0], addr, &val);

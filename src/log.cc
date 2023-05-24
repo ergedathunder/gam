@@ -10,6 +10,20 @@
 #include "gallocator.h"
 
 void _epicLogRaw(int level, const char* msg) {
+  /* add xmx add */
+  static const char *log_level_strs_without_color[] = {
+          "[FATAL  ]",
+          "[WARNING]",
+          "[INFO   ]",
+          "[DEBUG  ]",
+  };
+  static const char *log_level_strs_with_color[] = {
+          "\033[39;41m[FATAL  ]\033[0m",
+          "\033[39;43m[WARNING]\033[0m",
+          "\033[39;46m[INFO   ]\033[0m",
+          "\033[39;45m[DEBUG  ]\033[0m",
+  };
+  /* add xmx add */
   const char *c = ".-*#";
   FILE *fp;
   char buf[128];
@@ -28,8 +42,11 @@ void _epicLogRaw(int level, const char* msg) {
   off = strftime(buf, sizeof(buf), "%d %b %H:%M:%S.", localtime(&tv.tv_sec));
   snprintf(buf + off, sizeof(buf) - off, "%03d", (int) tv.tv_usec / 1000);
   //fprintf(fp,"[%d] %s %c %s\n",(int)getpid(),buf,c[level],msg);
-  fprintf(fp, "[%d] %s %c %s\n", (int) syscall(SYS_gettid), buf, c[level], msg);
-
+  /* add xmx add */
+  //fprintf(fp, "[%d] %s %c %s\n", (int) syscall(SYS_gettid), buf, c[level], msg);
+  auto log_level_strs = (fp == stdout || fp == stderr) ? log_level_strs_with_color : log_level_strs_without_color;
+  fprintf(fp, "[%d] %s %s %s\n", (int) syscall(SYS_gettid), log_level_strs[level], buf, msg);
+  /* add xmx add */
   fflush(fp);
 
   if (GAllocFactory::LogFile())

@@ -25,7 +25,31 @@ class Master : public Server {
   unordered_map<uint64_t, pair<void*, Size>> kvs;
 
   unordered_map<uint64_t, queue<pair<Client*, WorkRequest*>>> to_serve_kv_request;
+/* add xmx add */
+  struct MasterMutex {
+    bool locked = false;
+    // worker id, wr id
+    std::list<std::pair<int, unsigned int>> waitList;
+  };
 
+  atomic<uint64_t> nextMutexKey {1};
+  unordered_map<std::string, uint64_t> mutexNameToKey;
+  unordered_map<uint64_t, MasterMutex> mutexKeyToMutex;
+
+  std::mutex masterMutexMtx;
+
+  struct MasterSem {
+    int value;
+    // worker id, wr id
+    std::queue<std::pair<int, unsigned int>> waitQueue;
+  };
+
+  atomic<uint64_t> nextSemKey {1};
+  unordered_map<std::string, uint64_t> semNameToKey;
+  unordered_map<uint64_t, MasterSem> semKeyToSem;
+
+  std::mutex masterSemMtx;
+/* add xmx add */
 public:
   Master(const Conf& conf);
   inline void Join() {st->join();}
@@ -37,6 +61,14 @@ public:
 
   void ProcessRequest(Client* client, WorkRequest* wr);
   //some post process after accepting a TCP connection (e.g., send the worker list)
+  
+  /* add xmx add */
+  void processRemoteMutex(Client* client, WorkRequest* wr);
+  void processRemoteSem(Client* client, WorkRequest* wr);
+
+  void sendRequest(Client *client, WorkRequest *wr);
+  /* add xmx add */
+  
   int PostAcceptWorker(int, void*);
   //inline int PostConnectMaster(int fd, void* data) {return 0;} //not used
 

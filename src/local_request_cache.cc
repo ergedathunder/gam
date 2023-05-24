@@ -164,6 +164,79 @@ int Worker::ProcessLocalRead(WorkRequest* wr) {
           i = nextb;
           continue;
         }
+
+        /* add xmx add */
+        else if (Ds == WRITE_SHARED) {
+          //epicInfo("Local Read got to write_shared");
+          GAddr nextBlock = nextb;
+          GAddr block = i;
+          void * localAddr = laddr;
+          
+          if (!entry) {
+            GAddr srcStart = block > start ? block : start;
+            void *dstStart = (void *) ((ptr_t) wr->ptr + GMINUS(srcStart, start));
+            size_t len = nextBlock > end ? GMINUS(end, srcStart) : GMINUS(nextBlock, srcStart);
+            memcpy(dstStart, ToLocal(srcStart), len);
+          }
+          else {
+            auto &subEntries = entry->subEntries;
+            for (auto &subEntry: subEntries) {
+              // 还没到读取范围
+              if (subEntry.end <= start) {
+                continue;
+              }
+              // 已经读完全部数据，退出循环
+              if (subEntry.start >= end) {
+                break;
+              }
+
+              DirState state = subEntry.state;
+              if (unlikely(directory.InTransitionState(state))) {
+                epicInfo("sub-block%s in transition state when local read", ToString(subEntry).c_str());
+                wr->counter++;
+                AddToServeLocalRequest(block, wr);
+                directory.unlock(localAddr);
+                wr->unlock();
+                wr->is_cache_hit_ = false;
+                return IN_TRANSITION;
+              }
+
+              if (unlikely(state == DIR_DIRTY)) {
+                //epicInfo("dir is dirty");
+                Client *client = getOwnerClient(subEntry);
+                // 转到远程节点的 Worker::processRemoteReadSubCache
+                auto wrFetch = new WorkRequest(*wr);
+                wrFetch->counter = 0;
+                wrFetch->op = FETCH_AND_SHARED;
+                wrFetch->addr = subEntry.start;
+                wrFetch->size = subEntry.size();
+                wrFetch->ptr = static_cast<char *>(localAddr) + (subEntry.start - block);
+                wrFetch->parent = wr;
+               /* add xmx add */
+                wrFetch->flag |= (Write_shared);
+              /* add xmx add */
+
+                // 只有所有的子请求完成后才会继续处理父请求
+                wr->counter++;
+                // 只要有一个子块没命中就算缓存未命中
+                wr->is_cache_hit_ = false;
+                // 子块状态转为共享中间态
+                subEntry.toToShared();
+                SubmitRequest(client, wrFetch, ADD_TO_PENDING | REQUEST_SEND);
+              } else { // @xmx: !DIR_DIRTY
+                // 子块不为脏直接复制子块的数据
+                GAddr srcStart = max(subEntry.start, start);
+                void *dstStart = static_cast<char *>(wr->ptr) + (srcStart - start);
+                size_t len = min(subEntry.end, end) - srcStart;
+                memcpy(dstStart, ToLocal(srcStart), len);
+              }
+            } // for - each sub-entry
+          }
+          directory.unlock(laddr);
+          i = nextb;
+          continue;
+        }
+        /* add xmx add */
       }
       /* add ergeda add */
 
@@ -249,6 +322,9 @@ int Worker::ProcessLocalWrite(WorkRequest* wr) {
       return FENCE_PENDING;
     }
     fence->unlock();
+  }
+  if ((wr->flag & ASYNC) && !(wr->flag & TO_SERVE)) {
+    ++pendingWrites;
   }
   if ((wr->flag & ASYNC) && !(wr->flag & TO_SERVE)) {
     fence->pending_writes++;
@@ -456,6 +532,100 @@ int Worker::ProcessLocalWrite(WorkRequest* wr) {
           i = nextb;
           continue;
         }
+
+        /* add xmx add */
+        else if (Ds == WRITE_SHARED) {
+          GAddr nextBlock = nextb;
+          GAddr block = i;
+          void * localAddr = laddr;
+          void *localBlock = laddr;
+
+          if (!entry) {
+            GAddr dstStart = max(block, start);
+            void *srcStart = static_cast<char *>(wr->ptr) + (dstStart - start);
+            size_t len = min(nextBlock, end) - dstStart;
+            memcpy(ToLocal(dstStart), srcStart, len);
+          } else { // entry != nullptr，根据子块的状态执行相应的操作
+            for (auto &subEntry: entry->subEntries) {
+              // 还没到读取范围
+              if (subEntry.end <= start) {
+                continue;
+              }
+              // 已经读完全部数据，退出循环
+              if (subEntry.start >= end) {
+                break;
+              }
+
+              DirState state = subEntry.state;
+              if (unlikely(directory.InTransitionState(state))) {
+                epicInfo("sub-block%s in transition state when local write", ToString(subEntry).c_str());
+                // -- in Worker::processLocalWriteSubBlock
+                wr->counter++;
+                wr->is_cache_hit_ = false;
+                if (wr->flag & ASYNC) {
+                  if (!wr->IsACopy()) {
+                    wr->unlock();
+                    wr = wr->Copy();
+                    wr->lock();
+                  }
+                }
+                // 转到 ProcessToServeRequest 后跳转到本函数内
+                AddToServeLocalRequest(block, wr);
+                directory.unlock(localBlock);
+                wr->unlock();
+                return IN_TRANSITION;
+              }
+
+              if (state == DIR_DIRTY || state == DIR_SHARED) {
+                auto &sharers = subEntry.sharers;
+                auto wrInvalidate = new WorkRequest(*wr);
+                wrInvalidate->id = GetWorkPsn();
+                wrInvalidate->counter = 0;
+                // 两种状态的行为不一样，脏的需要写回本节点，共享的只需要通知
+                wrInvalidate->op = state == DIR_DIRTY ? FETCH_AND_INVALIDATE : INVALIDATE;
+                wrInvalidate->addr = subEntry.start;
+                wrInvalidate->size = subEntry.size();
+                wrInvalidate->ptr = static_cast<char *>(localBlock) + (subEntry.start - block);
+                wr->is_cache_hit_ = false;
+                if (wr->flag & ASYNC) {
+                  // 复制待写入内容，防止丢失（因为写入是异步操作）
+                  if (!wr->IsACopy()) {
+                    wr->unlock();
+                    wr = wr->Copy();
+                    wr->lock();
+                  }
+                }
+                wrInvalidate->parent = wr;
+                /* add xmx add */
+                wrInvalidate->flag |= (Write_shared);
+                /* add xmx add */
+                // -- in Worker::processPendingWriteSubBlock
+                wrInvalidate->counter = static_cast<int>(sharers.size());
+                epicAssert(wrInvalidate->counter.load());
+                // -- in Worker::processPendingWriteSubBlock
+                wr->counter++;
+                subEntry.toToUnshared();
+
+                AddToPending(wrInvalidate->id, wrInvalidate);
+                for (auto sharer: sharers) {
+                  Client *sharerClient = FindClientWid(sharer);
+                  SubmitRequest(sharerClient, wrInvalidate);
+                  epicInfo("sent %s to worker %d (wrInvalidate=%s)",
+                          ToCString(wrInvalidate->op), sharerClient->GetWorkerId(), ToString(wrInvalidate).c_str());
+                }
+              } else { // !DIR_DIRTY && !DIR_SHARED
+                GAddr dstStart = max(subEntry.start, start);
+                void *srcStart = static_cast<char *>(wr->ptr) + (dstStart - start);
+                size_t len = min(subEntry.end, end) - dstStart;
+                memcpy(ToLocal(dstStart), srcStart, len);
+              }
+            } // for - each sub-block
+          } // entry != nullptr
+          directory.unlock(laddr);
+          i = nextb;
+          continue;
+        }
+        /* add xmx add */
       }
       /* add ergeda add */
 
@@ -892,3 +1062,48 @@ void Worker::Code_invalidate(WorkRequest * wr, DirEntry * entry, GAddr blk) {
   }
 }
 /* add ergeda add */
+
+/* add xmx add */
+
+int Worker::processLocalMutex(WorkRequest *wr) {
+  if (wr->op == CREATE_MUTEX) {
+    size_t len = strlen(static_cast<char *>(wr->ptr));
+    wr->key = len;
+    if (len >= BLOCK_SIZE || !len) {
+      epicFatal("lock name is too long or empty: max length=%d, got %lu", BLOCK_SIZE - 1, len);
+      wr->status = LOCK_FAILED;
+      return 0;
+    }
+
+    SubmitRequest(master, wr, ADD_TO_PENDING | REQUEST_SEND);
+  } else if (wr->op == MUTEX_LOCK || wr->op == MUTEX_TRY_LOCK || wr->op == MUTEX_UNLOCK) {
+    SubmitRequest(master, wr, ADD_TO_PENDING | REQUEST_SEND);
+  } else {
+    epicFatal("unsupported operation: %s(%d)", ToCString(wr->op), wr->op);
+    wr->status = ERROR;
+    return 0;
+  }
+  return REMOTE_REQUEST;
+}
+
+int Worker::processLocalSem(WorkRequest *wr) {
+  if (wr->op == CREATE_SEM) {
+    size_t len = strlen(static_cast<char *>(wr->ptr));
+    wr->key = len;
+    if (len >= BLOCK_SIZE || !len) {
+      epicFatal("lock name is too long or empty: max length=%d, got %lu", BLOCK_SIZE - 1, len);
+      wr->status = LOCK_FAILED;
+      return 0;
+    }
+
+    SubmitRequest(master, wr, ADD_TO_PENDING | REQUEST_SEND);
+  } else if (wr->op == SEM_WAIT || wr->op == SEM_POST) {
+    SubmitRequest(master, wr, ADD_TO_PENDING | REQUEST_SEND);
+  } else {
+    epicFatal("unsupported operation: %s(%d)", ToCString(wr->op), wr->op);
+    wr->status = ERROR;
+    return 0;
+  }
+  return REMOTE_REQUEST;
+}
+/* add xmx add */

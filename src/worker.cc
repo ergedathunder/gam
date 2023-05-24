@@ -506,6 +506,26 @@ Client* Worker::GetClient(GAddr addr) {
   return cli;
 }
 
+/* add xmx add */
+Client *Worker::getOwnerClient(const SubDirEntry &subDirEntry) {
+  Client *client = nullptr;
+  int wid = static_cast<int>(subDirEntry.sharers.front());
+  if (widCliMap.empty()) {
+    epicFatal("#remote workers is 0!");
+  } else {
+    try {
+      client = widCliMap.at(wid);
+    } catch (const std::out_of_range &oor) {
+      epicFatal("cannot find the client for worker %d (%s)", wid, oor.what());
+    }
+    if (!client) {
+      epicFatal("cannot find the client for worker %d", wid);
+    }
+  }
+  return client;
+}
+/* add xmx add */
+
 unsigned long long Worker::SubmitRequest(Client* cli, WorkRequest* wr, int flag,
     void* dest, void* src, Size size,
     uint32_t imm) {
@@ -581,6 +601,14 @@ void Worker::CompletionCheck(unsigned int id) {
       wr = nullptr;
       epicLog(LOG_DEBUG, "finish pending_invalidate");
       break;
+    /* add xmx add */
+    case FETCH_SUB_BLOCK_META:
+      epicLog(LOG_INFO, "[Sub-block] free registered sub-block meta buffer");
+      sb.sb_free(wr->ptr);
+      delete wr;
+      wr = nullptr;
+      break;
+    /* add xmx add */
     default:
       epicLog(LOG_WARNING, "Unrecognized work request for pending work %d",
           wr->op);
@@ -726,6 +754,9 @@ int Worker::Notify(WorkRequest* wr) {
       epicAssert(false);
     }
     ProcessFenced(fence);
+    /* add xmx add */
+    if (WRITE == wr->op) { --pendingWrites; }
+    /* add xmx add */
     if (wr->flag & COPY) {
       WorkRequest* o = wr;
       wr = wr->Copy();

@@ -15,6 +15,10 @@
 #include "map.h"
 #include "util.h"
 
+/* add xmx add */
+#include "chars.h"
+/* add xmx add */
+
 class Worker;
 
 //we assume the base address is also BLOCK-aligned
@@ -31,16 +35,142 @@ enum CacheState {
   CACHE_TO_INVALID,
   CACHE_TO_SHARED,
   CACHE_TO_DIRTY,
+  /* add xmx add */
+  CACHE_FETCHING_META,
+  CACHE_SUB_VALID,
+  /* add xmx add */
 #ifdef SELECTIVE_CACHING
 CACHE_NOT_CACHE
 #endif
 };
+
+/* add xmx add */
+inline const char *ToCString(CacheState cacheState) {
+  switch (cacheState) {
+    case CACHE_NOT_EXIST:
+      return "CACHE_NOT_EXIST";
+    case CACHE_INVALID:
+      return "CACHE_INVALID";
+    case CACHE_SHARED:
+      return "CACHE_SHARED";
+    case CACHE_DIRTY:
+      return "CACHE_DIRTY";
+    case CACHE_TO_INVALID:
+      return "CACHE_TO_INVALID";
+    case CACHE_TO_SHARED:
+      return "CACHE_TO_SHARED";
+    case CACHE_TO_DIRTY:
+      return "CACHE_TO_DIRTY";
+    default:
+      return "Unknown cache state";
+  }
+}
+
+struct SubCacheLine {
+  SubCacheLine(GAddr start, GAddr end): start(start), end(end) {}
+
+// 缓存子块开始的全局地址
+  GAddr start = 0;
+  // 缓存子块结束的全局地址（不包括）
+  GAddr end = 0;
+  // 缓存子块的状态
+  CacheState state = CACHE_INVALID;
+
+  bool operator==(const SubCacheLine &subCacheLine) const {
+    return start == subCacheLine.start && end == subCacheLine.end;
+  }
+
+  auto size() const -> decltype(end - start) {
+    return end - start;
+  }
+
+  void toToShared() {
+    state = CACHE_TO_SHARED;
+  }
+
+  void toShared() {
+    state = CACHE_SHARED;
+  }
+
+  void toToDirty() {
+    state = CACHE_TO_DIRTY;
+  }
+
+  void toDirty() {
+    state = CACHE_DIRTY;
+  }
+
+  void toToInvalid() {
+    state = CACHE_TO_INVALID;
+  }
+
+  void toInvalid() {
+    state = CACHE_INVALID;
+  }
+};
+
+inline string ToString(const SubCacheLine& subCacheLine) {
+  char buf[BLOCK_SIZE] = {0};
+  sprintf(buf, "{addr=%lx:%lx, size=%lu, state=%s}",
+          subCacheLine.start, subCacheLine.end,
+          subCacheLine.end - subCacheLine.start,
+          ToCString(subCacheLine.state));
+  return string{buf};
+}
+/* add xmx add */
 
 struct CacheLine {
   void* line = nullptr;
   GAddr addr = 0;
   CacheState state = CACHE_INVALID;
   unordered_map<GAddr, int> locks;
+
+  // sub-block below
+  /* add xmx add */
+  int metaVersion = -1;
+  list<SubCacheLine> subCaches;
+
+  void updateSubCachesMeta(void *buf) {
+    int len = 0;
+    char *p = static_cast<char *>(buf);
+    p += readInteger(p, metaVersion);
+    p += readInteger(p, len);
+
+    if (len) {
+      GAddr start = addr;
+      GAddr end;
+      list<SubCacheLine> newSubCaches;
+      for (int i = 0; i < len; ++i) {
+        p += readInteger(p, end);
+        newSubCaches.emplace_back(start, end);
+        start = end;
+      }
+      end = addr + BLOCK_SIZE;
+      newSubCaches.emplace_back(start, end);
+      // 状态迁移：将原来的分块列表里有效的子块状态复制到新列表
+      for (const auto &subCache: subCaches) {
+        auto newSubCache = std::find(newSubCaches.begin(), newSubCaches.end(), subCache);
+        if (newSubCache != newSubCaches.end()) {
+          newSubCache->state = subCache.state;
+        } else {
+          if (subCache.state != CACHE_INVALID) {
+            epicLog(LOG_WARNING, "[Sub-block] sub-caches conflict: old sub-cache should be invalid. old%s, new%s",
+                    ToString(subCache).c_str(), ToString(*newSubCache).c_str());
+          }
+        }
+      }
+
+      subCaches.swap(newSubCaches);
+    } // 子块数量不少于1（内存块已经进行过划分子块操作）
+  }
+
+  decltype(subCaches.end()) findSubCache(WorkRequest *wr) {
+    return std::find_if(subCaches.begin(), subCaches.end(), [wr] (const SubCacheLine &subCacheLine) {
+      return subCacheLine.start == wr->addr && subCacheLine.end == GADD(wr->addr, wr->size);
+    });
+  }
+  /* add xmx add */
+
   //used for LRU
 #ifdef USE_APPR_LRU
   long lruclock;
@@ -333,6 +463,11 @@ class Cache {
   int Read(WorkRequest* wr);
   int Write(WorkRequest* wr);
   int ReadWrite(WorkRequest* wr);
+
+/* add xmx add */
+  int readSubBlock(WorkRequest *wr);
+  int writeSubBlock(WorkRequest *wr);
+/* add xmx add */
 
   ~Cache() { };  //it is only used when program exits
 

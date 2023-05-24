@@ -55,6 +55,10 @@ void Server::ProcessRdmaRequest(ibv_wc& wc) {
   /* add ergeda add */
   //epicLog (LOG_WARNING, "Worker %d send to Worker %d op %d\n", cli->GetWorkerId(), GetWorkerId(), wc.opcode);
   /* add ergeda add */
+  
+  /* add xmx add */
+  transferredBytes += wc.byte_len;
+  /* add xmx add */
 
   switch (wc.opcode) {
     case IBV_WC_SEND:

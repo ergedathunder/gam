@@ -41,6 +41,24 @@ class WorkerHandle {
     return worker->ToLocal(addr);
   }
 
+  /* add xmx add */
+  uint64_t getTransferredBytes() const {
+    return worker->getTransferredBytes();
+  }
+
+  Size getWorkerPendingWrites(WorkRequest *wr = nullptr) {
+#ifdef SUB_BLOCK
+    return worker->pendingWrites.load();
+#else // !SUB_BLOCK
+    if (!wr) {
+      epicFatal("wr shouldn't be nullptr");
+      epicAssert(false);
+    }
+    return worker->getFence(wr->fd)->pending_writes.load();
+#endif // SUB_BLOCK
+  }
+  /* add xmx add */
+
   void ReportCacheStatistics();
   void ResetCacheStatistics();
 

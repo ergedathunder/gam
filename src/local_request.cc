@@ -299,7 +299,7 @@ void Worker::CreateDir(WorkRequest * wr, DataState Cur_state, GAddr Owner) {
     if (IsLocal(i)) laddr = ToLocal(i);
     else laddr = (void*)i;
     directory.lock(laddr);
-    directory.CreateEntry(laddr, Cur_state, Owner);
+    directory.CreateEntry(i, laddr, Cur_state, Owner);
     directory.unlock(laddr);
     i = nextb;
   }

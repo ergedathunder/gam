@@ -62,6 +62,18 @@ enum Work {
   WE_WRITE, //write exclusive write(!owner_node)
   WE_INV, //write_exclusive invalidate
   /* add ergeda add */
+
+  /* add xmx add */
+  // 本地没有缓存元信息或者版本号不对
+  FETCH_SUB_BLOCK_META,
+  CREATE_MUTEX,
+  MUTEX_LOCK,
+  MUTEX_TRY_LOCK,
+  MUTEX_UNLOCK,
+  CREATE_SEM,
+  SEM_POST,
+  SEM_WAIT,
+  /* add xmx add */
 #ifdef DHT
   GET_HTABLE,
 #endif
@@ -88,8 +100,13 @@ enum Work {
   /* add ergeda add */
   TYPE_REPLY,
   JUST_READ_REPLY,
-  SET_CACHE_REPLY
+  SET_CACHE_REPLY,
   /* add ergeda add */
+
+  /* add xmx add */
+  MUTEX_REPLY,
+  SEM_REPLY,
+  /* add xmx add */
 };
 
 enum Status {
@@ -104,6 +121,10 @@ enum Status {
   WRITE_ERROR,
   UNRECOGNIZED_OP,
   LOCK_FAILED,
+  /* add xmx add */
+  // 需要获取新的子块信息，再进行远程数据读写
+  META_VERSION_REQUIRED,
+  /* add xmx add */
   NOT_EXIST
 };
 
@@ -136,6 +157,11 @@ typedef int Flag;
 #define Write_shared (1 << 20)
 #define Add_list (1 << 21) //表示是第一次访问，需要加入shared_list(read_mostly)
 /* add ergeda add */
+
+/* add xmx add */
+# define SUB_READ (1 << 22)
+# define SUB_WRITE (1 << 23)
+/* add xmx add */
 
 #define MASK_ID 1
 #define MASK_OP 1 << 1
@@ -186,6 +212,10 @@ struct WorkRequest {
   WorkRequest* parent;
   WorkRequest* next; //
   WorkRequest* dup;
+
+  /* add xmx add */
+  int metaVersion = -1;
+  /* add xmx add */
 
   LockWrapper lock_;
 
@@ -281,6 +311,9 @@ struct WorkRequest {
     arg = 0;
 #endif
 
+    /* add xmx add */
+    metaVersion = -1;
+    /* add xmx add */
     is_cache_hit_ = true;
     unlock();
   }
@@ -295,5 +328,151 @@ struct WorkRequest {
 
   ~WorkRequest();
 };
+
+/* add xmx add */
+inline const char *ToCString(Work work) {
+  switch (work) {
+    case MALLOC:
+      return "MALLOC";
+    case READ:
+      return "READ";
+    case FETCH_AND_SHARED:
+      return "FETCH_AND_SHARED";
+    case READ_FORWARD:
+      return "READ_FORWARD";
+    case WRITE:
+      return "WRITE";
+    case WRITE_PERMISSION_ONLY:
+      return "WRITE_PERMISSION_ONLY";
+    case FETCH_AND_INVALIDATE:
+      return "FETCH_AND_INVALIDATE";
+    case INVALIDATE:
+      return "INVALIDATE";
+    case INVALIDATE_FORWARD:
+      return "INVALIDATE_FORWARD";
+    case WRITE_FORWARD:
+      return "WRITE_FORWARD";
+    case WRITE_PERMISSION_ONLY_FORWARD:
+      return "WRITE_PERMISSION_ONLY_FORWARD";
+    case ATOMIC:
+      return "ATOMIC";
+    case UPDATE_MEM_STATS:
+      return "UPDATE_MEM_STATS";
+    case FETCH_MEM_STATS:
+      return "FETCH_MEM_STATS";
+    case BROADCAST_MEM_STATS:
+      return "BROADCAST_MEM_STATS";
+    case MFENCE:
+      return "MFENCE";
+    case SFENCE:
+      return "SFENCE";
+    case RLOCK:
+      return "RLOCK";
+    case RLOCK_LEN:
+      return "RLOCK_LEN";
+    case WLOCK:
+      return "WLOCK";
+    case WLOCK_LEN:
+      return "WLOCK_LEN";
+    case UNLOCK:
+      return "UNLOCK";
+    case UNLOCK_LEN:
+      return "UNLOCK_LEN";
+    case FREE:
+      return "FREE";
+    case ACTIVE_INVALIDATE:
+      return "ACTIVE_INVALIDATE";
+    case WRITE_BACK:
+      return "WRITE_BACK";
+    case PENDING_INVALIDATE:
+      return "PENDING_INVALIDATE";
+    case PUT:
+      return "PUT";
+    case GET:
+      return "GET";
+    case FETCH_SUB_BLOCK_META:
+      return "FETCH_SUB_BLOCK_META";
+    case CREATE_MUTEX:
+      return "CREATE_MUTEX";
+    case MUTEX_LOCK:
+      return "MUTEX_LOCK";
+    case MUTEX_TRY_LOCK:
+      return "MUTEX_TRY_LOCK";
+    case MUTEX_UNLOCK:
+      return "MUTEX_UNLOCK";
+    case CREATE_SEM:
+      return "CREATE_MUTEX";
+    case SEM_WAIT:
+      return "SEM_WAIT";
+    case SEM_POST:
+      return "SEM_POST";
+    case REPLY:
+      return "REPLY";
+    case MALLOC_REPLY:
+      return "MALLOC_REPLY";
+    case FETCH_MEM_STATS_REPLY:
+      return "FETCH_MEM_STATS_REPLY";
+    case READ_REPLY:
+      return "READ_REPLY";
+    case WRITE_REPLY:
+      return "WRITE_REPLY";
+    case LOCK_REPLY:
+      return "LOCK_REPLY";
+    case FREE_REPLY:
+      return "FREE_REPLY";
+    case GET_REPLY:
+      return "GET_REPLY";
+    case MUTEX_REPLY:
+      return "MUTEX_REPLY";
+    case SEM_REPLY:
+      return "SEM_REPLY";
+    default:
+      return "Unknown work";
+  }
+}
+
+inline const char *ToCString(int status) {
+  switch (static_cast<Status>(status)) {
+    case SUCCESS:
+      return "SUCCESS";
+    case REMOTE_REQUEST:
+      return "REMOTE_REQUEST";
+    case IN_TRANSITION:
+      return "IN_TRANSITION";
+    case FENCE_PENDING:
+      return "FENCE_PENDING";
+    case READ_SUCCESS:
+      return "READ_SUCCESS";
+    case ERROR:
+      return "ERROR";
+    case ALLOC_ERROR:
+      return "ALLOC_ERROR";
+    case READ_ERROR:
+      return "READ_ERROR";
+    case WRITE_ERROR:
+      return "WRITE_ERROR";
+    case UNRECOGNIZED_OP:
+      return "UNRECOGNIZED_OP";
+    case LOCK_FAILED:
+      return "LOCK_FAILED";
+    case META_VERSION_REQUIRED:
+      return "META_VERSION_REQUIRED";
+    case NOT_EXIST:
+      return "NOT_EXIST";
+    default:
+      return "Unknown status";
+  }
+}
+
+inline string ToString(const WorkRequest *wr) {
+  char buf[BLOCK_SIZE * 2] = {0};
+  sprintf(buf, "{%p, id=%u, addr=%lx, size=%ld, ptr=%p, parent=%p, op=%s, counter=%d, status=%s, meta=%d, fd=%d, wid=%d, flag=%d}",
+          wr, wr->id, wr->addr, wr->size,
+          wr->ptr, wr->parent,
+          ToCString(wr->op), wr->counter.load(), ToCString(wr->status),
+          wr->metaVersion, wr->fd, wr->wid, wr->flag);
+  return string{buf};
+}
+/* add xmx add */
 
 #endif /* INCLUDE_WORKREQUEST_H_ */

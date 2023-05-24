@@ -50,6 +50,9 @@ cs_test: cs_test.cc
 test: test.cc
 	$(CPP) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIBS)
 
+test_fft: test_fftmsi.cc
+	$(CPP) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIBS)
+
 gfunc_test: ../test/gfunc_test.cc
 	$(CPP) $(CFLAGS) $(INCLUDE) -g -o $@ $^ $(LIBS)		
 

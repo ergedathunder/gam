@@ -27,6 +27,12 @@ void PrintStackTrace();
 //#else
 #define epicLog(level, fmt, ...) _epicLog ((char*)__FILE__, (char*)__func__, __LINE__, level, fmt, ## __VA_ARGS__)
 //#endif
+/* add xmx add */
+# define epicDebug(fmt, ...) epicLog(LOG_DEBUG, fmt, ## __VA_ARGS__)
+# define epicInfo(fmt, ...) epicLog(LOG_INFO, fmt, ## __VA_ARGS__)
+# define epicWarning(fmt, ...) epicLog(LOG_WARNING, fmt, ## __VA_ARGS__)
+# define epicFatal(fmt, ...) epicLog(LOG_FATAL, fmt, ## __VA_ARGS__)
+/* add xmx add */
 
 #ifdef NDEBUG
 #define epicAssert(_e) (__ASSERT_VOID_CAST (0))

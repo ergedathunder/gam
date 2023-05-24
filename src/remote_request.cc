@@ -346,6 +346,8 @@ void Worker::ProcessRequest(Client* client, WorkRequest* wr) {
   epicLog(LOG_DEBUG, "process remote request %d from worker %d", wr->op,
       client->GetWorkerId());
   epicAssert(wr->wid == 0 || wr->wid == client->GetWorkerId());
+  epicInfo("process remote request %d from worker %d, wr = %s", wr->op,
+      client->GetWorkerId(),  ToString(wr).c_str());
 
   switch (wr->op) {
 
@@ -514,6 +516,21 @@ void Worker::ProcessRequest(Client* client, WorkRequest* wr) {
         break;
       }
     /*  add ergeda add */
+
+    /* add xmx add */
+    case MUTEX_REPLY: {
+      processRemoteMutexReply(client, wr);
+      break;
+    }
+    case SEM_REPLY: {
+      processRemoteSemReply(client, wr);
+      break;
+    }
+    case FETCH_SUB_BLOCK_META: {
+      processRemoteFetchSubBlockMeta(client, wr);
+      break;
+    }
+    /* add xmx add */
 #ifdef NOCACHE
     case RLOCK:
       ProcessRemoteRLock(client, wr);

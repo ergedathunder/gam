@@ -30,6 +30,9 @@ class Server {
     aeEventLoop* el;
     int sockfd;
     const Conf* conf;
+    /* add xmx add */
+    atomic<uint64_t> transferredBytes{0};
+    /* add xmx add */
 
     friend class ServerFactory;
     friend class Master;
@@ -40,6 +43,12 @@ class Server {
     Client* NewClient(bool isMaster, const char* rdmaConn = nullptr);
     Client* NewClient(const char*);
     Client* NewClient();
+
+    /* add xmx add */
+    uint64_t getTransferredBytes() const {
+      return transferredBytes.load();
+    }
+    /* add xmx add */
 
     virtual bool IsMaster() = 0;
     virtual int GetWorkerId() = 0;

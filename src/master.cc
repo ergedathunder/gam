@@ -221,11 +221,242 @@ void Master::ProcessRequest(Client* client, WorkRequest* wr) {
 
       break;
     }
+    /* add xmx add */
+    case CREATE_MUTEX:
+    case MUTEX_LOCK:
+    case MUTEX_TRY_LOCK:
+    case MUTEX_UNLOCK: {
+      processRemoteMutex(client, wr);
+      break;
+    }
+
+    case CREATE_SEM:
+    case SEM_POST:
+    case SEM_WAIT: {
+      processRemoteSem(client, wr);
+      break;
+    }
+    /* add xmx add */
     default:
       epicLog(LOG_WARNING, "unrecognized work request %d", wr->op);
       break;
   }
 }
+
+/* add xmx add */
+void Master::processRemoteMutex(Client* client, WorkRequest* wr) {
+  std::unique_lock<std::mutex> lockGuard{masterMutexMtx};
+
+  if (wr->op == CREATE_MUTEX) {
+    uint64_t nameSize = wr->key;
+    epicAssert(nameSize < BLOCK_SIZE);
+    char strBuf[BLOCK_SIZE]{0};
+    memcpy(strBuf, wr->ptr, nameSize);
+    strBuf[nameSize] = 0;
+    epicInfo("received CREATE_MUTEX. length=%lu, name=%s", nameSize, strBuf);
+
+    std::string mutexName{strBuf};
+    uint64_t key;
+    if (mutexNameToKey.find(mutexName) != mutexNameToKey.end()) {
+      key = mutexNameToKey[mutexName];
+      epicInfo("mutex %s(%lu) already existed", strBuf, key);
+    } else {
+      mutexNameToKey[mutexName] = nextMutexKey++;
+      key = mutexNameToKey[mutexName];
+      mutexKeyToMutex.emplace(key, MasterMutex{});
+      epicInfo("created mutex %s(%lu)", strBuf, key);
+    }
+
+    wr->op = MUTEX_REPLY;
+    wr->key = key;
+    wr->status = SUCCESS;
+    sendRequest(client, wr);
+    delete wr;
+  } else if (wr->op == MUTEX_LOCK) {
+    if (mutexKeyToMutex.find(wr->key) != mutexKeyToMutex.end()) {
+      auto &mutex = mutexKeyToMutex[wr->key];
+      if (!mutex.locked) {
+        mutex.locked = true;
+        wr->op = MUTEX_REPLY;
+        wr->status = SUCCESS;
+        sendRequest(client, wr);
+      } else { // locked
+        mutex.waitList.emplace_back(client->GetWorkerId(), wr->id);
+      }
+    } else { // no mutex
+      wr->op = MUTEX_REPLY;
+      wr->status = LOCK_FAILED;
+      sendRequest(client, wr);
+      epicWarning("lock mutex(%lu) failed: not existed", wr->key);
+    }
+
+    delete wr;
+  } else if (wr->op == MUTEX_TRY_LOCK) {
+    if (mutexKeyToMutex.find(wr->key) != mutexKeyToMutex.end()) {
+      auto &mutex = mutexKeyToMutex[wr->key];
+      wr->op = MUTEX_REPLY;
+      if (!mutex.locked) {
+        mutex.locked = true;
+        wr->status = SUCCESS;
+      } else { // locked
+        wr->status = LOCK_FAILED;
+      }
+
+    } else { // no mutex
+      wr->op = MUTEX_REPLY;
+      wr->status = LOCK_FAILED;
+      epicWarning("try lock mutex(%lu) failed: not existed", wr->key);
+    }
+
+    sendRequest(client, wr);
+    delete wr;
+  } else if (wr->op == MUTEX_UNLOCK) {
+    if (mutexKeyToMutex.find(wr->key) != mutexKeyToMutex.end()) {
+      auto &mutex = mutexKeyToMutex[wr->key];
+      wr->op = MUTEX_REPLY;
+      wr->status = SUCCESS;
+
+      if (mutex.locked) {
+        if (mutex.waitList.empty()) {
+          mutex.locked = false;
+        } else { // 唤醒下一个worker
+          auto toBeNotified = mutex.waitList.front();
+          mutex.waitList.pop_front();
+          Client *notifiedClient = FindClientWid(toBeNotified.first);
+
+          unsigned int currWRId = wr->id;
+          wr->id = toBeNotified.second;
+          sendRequest(notifiedClient, wr);
+
+          wr->id = currWRId;
+        } // waitQueue is not empty
+      } else { // not locked
+        epicWarning("mutex (%lu) is not locked", wr->key);
+      }
+    } else { // no mutex
+      wr->op = MUTEX_REPLY;
+      wr->status = ERROR;
+      epicWarning("unlock mutex(%lu) failed: not existed", wr->key);
+    }
+
+    sendRequest(client, wr);
+    delete wr;
+  } else {
+    epicFatal("unsupported operation: %s(%d)", ToCString(wr->op), wr->op);
+    epicAssert(false);
+  }
+}
+
+void Master::processRemoteSem(Client* client, WorkRequest* wr) {
+  std::unique_lock<std::mutex> lockGuard{masterSemMtx};
+
+  if (wr->op == CREATE_SEM) {
+    uint64_t nameSize = wr->key;
+    auto value = static_cast<decltype(MasterSem::value)>(wr->size);
+    epicAssert(nameSize < BLOCK_SIZE);
+    char strBuf[BLOCK_SIZE]{0};
+    memcpy(strBuf, wr->ptr, nameSize);
+    strBuf[nameSize] = 0;
+    epicInfo("received CREATE_SEM. length=%lu, name=%s, value=%d", nameSize, strBuf, value);
+
+    std::string semName{strBuf};
+    uint64_t key;
+    if (semNameToKey.find(semName) != semNameToKey.end()) {
+      key = semNameToKey[semName];
+      value = semKeyToSem[key].value;
+      epicInfo("semaphore %s(%lu) already existed. value=%d", strBuf, key, value);
+    } else { // sem不存在
+      semNameToKey[semName] = nextSemKey++;
+      key = semNameToKey[semName];
+      semKeyToSem.emplace(key, MasterSem{value, {}});
+      epicInfo("created semaphore %s(key=%lu, value=%d)", strBuf, key, value);
+      if (value < 0) {
+        epicWarning("initial semaphore value is negative(%d)", value);
+      }
+    }
+
+    wr->op = SEM_REPLY;
+    wr->key = key;
+    wr->size = static_cast<decltype(wr->size)>(value);
+    wr->status = SUCCESS;
+    sendRequest(client, wr);
+    delete wr;
+  } else if (wr->op == SEM_WAIT) {
+    if (semKeyToSem.find(wr->key) != semKeyToSem.end()) {
+      auto &sem = semKeyToSem[wr->key];
+      --sem.value;
+      if (sem.value < 0) { // blocked
+        sem.waitQueue.emplace(client->GetWorkerId(), wr->id);
+      } else { // not blocked
+        wr->op = SEM_REPLY;
+        wr->size = static_cast<Size>(sem.value);
+        wr->status = SUCCESS;
+        sendRequest(client, wr);
+      }
+    } else { // no semaphore
+      wr->op = SEM_REPLY;
+      wr->status = LOCK_FAILED;
+      sendRequest(client, wr);
+      epicWarning("wait semaphore(%lu) failed: not existed", wr->key);
+    }
+
+    delete wr;
+  } else if (wr->op == SEM_POST) {
+    if (semKeyToSem.find(wr->key) != semKeyToSem.end()) {
+      auto &sem = semKeyToSem[wr->key];
+      wr->op = SEM_REPLY;
+      wr->status = SUCCESS;
+
+      wr->size = static_cast<decltype(wr->size)>(++sem.value);
+      if (sem.value <= 0) {
+        // 唤醒下一个worker
+        auto toBeNotified = sem.waitQueue.front();
+        sem.waitQueue.pop();
+        Client *notifiedClient = FindClientWid(toBeNotified.first);
+
+        unsigned int currWRId = wr->id;
+        wr->id = toBeNotified.second;
+        sendRequest(notifiedClient, wr);
+
+        wr->id = currWRId;
+        // waitQueue is not empty
+      } else { // not blocked
+        epicWarning("semaphore (%lu) is not blocked", wr->key);
+      }
+    } else { // no semaphore
+      wr->op = SEM_REPLY;
+      wr->status = ERROR;
+      epicWarning("post semaphore(%lu) failed: not existed", wr->key);
+    }
+
+    sendRequest(client, wr);
+    delete wr;
+  } else {
+    epicFatal("unsupported operation: %s(%d)", ToCString(wr->op), wr->op);
+    epicAssert(false);
+  }
+}
+
+void Master::sendRequest(Client *client, WorkRequest *wr) {
+  wr->wid = GetWorkerId();
+  char* sendBuf = client->GetFreeSlot();
+  bool busy = false;
+  if (sendBuf == nullptr) {
+    busy = true;
+    sendBuf = (char *) zmalloc(MAX_REQUEST_SIZE);
+    epicWarning("We don't have enough slot buf, use local buf instead");
+  }
+
+  int len = 0;
+  ssize_t ret;
+  wr->Ser(sendBuf, len);
+  if ((ret = client->Send(sendBuf, len)) != len) {
+    epicAssert(ret == -1);
+    epicWarning("slots are busy");
+  }
+  epicAssert((busy && ret == -1) || !busy);
+}
+/* add xmx add */
 
 void Master::Broadcast(const char* buf, size_t len) {
   auto lt = qpCliMap.lock_table();
