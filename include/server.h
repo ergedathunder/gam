@@ -31,12 +31,31 @@ class Server {
     int sockfd;
     const Conf* conf;
 
+    /* add xmx add */
+    atomic<uint64_t> transferredBytes{0};
+    atomic<uint64_t> racetime{0};
+    atomic<uint64_t> requesttime{0};
+    /* add xmx add */
+
     friend class ServerFactory;
     friend class Master;
     friend class Worker;
     friend class Cache;
 
   public:
+
+    /* add xmx add */
+    uint64_t getTransferredBytes() const {
+      return transferredBytes.load();
+    }
+    uint64_t getracetime() const{
+      return racetime.load();
+    }
+    uint64_t getrequesttime() const {
+      return requesttime.load();
+    }
+    /* add xmx add */
+
     Client* NewClient(bool isMaster, const char* rdmaConn = nullptr);
     Client* NewClient(const char*);
     Client* NewClient();

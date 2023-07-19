@@ -93,6 +93,11 @@ void Directory::Remove(DirEntry*& entry, int wid) {
   }
   epicAssert(found);
   if (entry->shared.size() == 0 && !IsBlockLocked(entry)) {
+    /* add xmx add */
+    entry->state = DIR_UNSHARED;
+    entry->shared.clear();
+    return;
+    /* add xmx add */
     int ret = dir.erase(entry->addr);
     epicAssert(ret);
     delete entry;
@@ -140,7 +145,13 @@ void Directory::ToUnShared(DirEntry*& entry) {
     epicLog(LOG_DEBUG, "dir is locked, just change it to dir_unshared");
   } else {
   /* add ergeda add */
+    /* add xmx add */
+    entry->state = DIR_UNSHARED;
+    entry->shared.clear();
+    return;
+    /* add xmx add */
     if (entry->Dstate != MSI) {
+      epicLog(LOG_WARNING, "execute erase dir");
     /* add ergeda add */
       if (!dir.erase(entry->addr)) {
         epicLog(LOG_WARNING, "cannot unshared the directory entry");
@@ -416,6 +427,11 @@ void Directory::UnLock(DirEntry*& entry, ptr_t ptr) {
     entry->locks.erase(ptr);
   }
   if (entry->state == DIR_UNSHARED && entry->locks.size() == 0) {
+    /* add xmx add */
+    entry->state = DIR_UNSHARED;
+    entry->shared.clear();
+    return;
+    /* add xmx add */
     dir.erase(entry->addr);
     delete entry;
     entry = nullptr;
@@ -455,6 +471,11 @@ void Directory::Clear(DirEntry*& entry, GAddr addr) {
   }
   if (entry->shared.size() == 0) {
     if (!IsBlockLocked(entry)) {
+      /* add xmx add */
+      entry->state = DIR_UNSHARED;
+      entry->shared.clear();
+      return;
+      /* add xmx add */
       dir.erase(entry->addr);
       delete entry;
       entry = nullptr;

@@ -462,6 +462,10 @@ void Worker::ProcessRemoteWrite(Client* client, WorkRequest* wr) {
     GAddr rc = directory.GetSList(entry).front();  //only one worker is updating this line
     Client* cli = GetClient(rc);
 
+    /* add xmx add */
+    if (op_orin == WRITE) racetime += 1;
+    /* add xmx add */
+
     //intermediate state
     directory.ToToDirty(entry);
     SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);

@@ -236,9 +236,10 @@ void Worker::ProcessRemoteReadType (Client * client, WorkRequest * wr) {
   wr->op = TYPE_REPLY;
 
   void* laddr = ToLocal(TOBLOCK(wr->addr));
-  epicLog(LOG_WARNING, "addr : %lld, laddr : %llx\n", TOBLOCK(wr->addr), laddr);
+  //epicLog(LOG_WARNING, "addr : %lld, laddr : %llx\n", TOBLOCK(wr->addr), laddr);
   directory.lock(laddr);
   DirEntry* entry = directory.GetEntry(laddr);
+  if (entry == nullptr) epicLog(LOG_FATAL, "no entry ??? ");
   DataState Dstate = directory.GetDataState(entry);
   GAddr Owner = directory.GetOwner(entry);
   directory.unlock(laddr);
