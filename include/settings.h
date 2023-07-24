@@ -23,7 +23,7 @@ using namespace std;
  * test switch
  */
 //#define WH_USE_LOCK
-#define USE_LRU
+// #define USE_LRU
 #define LRU_NUM 10
 //#define USE_APPR_LRU
 //#define SELECTIVE_CACHING
@@ -62,8 +62,12 @@ using namespace std;
 #define MAX_SHARED_LOCK 254 //MAX(unsigned char)-1
 #define EXCLUSIVE_LOCK_TAG 255 //MAX(unsigned char)
 
-#define BLOCK_POWER 9
-#define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
+// #define BLOCK_POWER 9
+// #define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
+
+#define BLOCK_POWER 12
+#define BLOCK_MASK 0xFFFFFFFFFFFFF000L
+
 #define BLOCK_SIZE (1 << BLOCK_POWER)
 
 #define RDMA_RESOURCE_EXCEPTION 1
@@ -110,9 +114,19 @@ enum DataState {
   READ_MOSTLY,
   ACCESS_EXCLUSIVE,
   WRITE_EXCLUSIVE,
-  WRITE_SHARED
+  WRITE_SHARED,
+  RC_WRITE_SHARED
 };
 
 /* add ergeda add */
+
+
+/* add wpq add */
+// #define ReleaseConsistency
+
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#define likely(x) __builtin_expect(!!(x), 1)
+
+/* add wpq add */
 
 #endif /* INCLUDE_SETTINGS_H_ */
