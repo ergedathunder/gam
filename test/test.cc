@@ -99,7 +99,7 @@ void Read_val (WorkerHandle * Cur_wh, GAddr addr, int * val) {
 void Write_val (WorkerHandle * Cur_wh, GAddr addr, int * val) {
   WorkRequest wr { };
   wr.op = WRITE;
-  wr.flag = ASYNC; //可以在这里调
+  //wr.flag = ASYNC; //可以在这里调 
   wr.size = sizeof(int);
   wr.addr = addr;
   wr.ptr = (void*)val;
@@ -254,12 +254,31 @@ void wsread(WorkerHandle * Cur_wh, GAddr addr, int * val, int num) {
 }
 
 void Test_writeshared() {
-  Count = 0;
+  Count = 0; 
   //GAddr addr = Malloc_addr(wh[1], sizeof(int), 0, 1);
-  GAddr addr = Malloc_addr(wh[2], 512, 0, 3);
+  GAddr addr = Malloc_addr(wh[2], 512, Write_shared, 3);
   GAddr addr1 = addr;
   GAddr addr2 = addr + 300;
+/*
+  int val1, val2;
+  val1 = 2;
   printf ("addr : %lld\n", addr);
+  Read_val(wh[1], addr2, &val2);
+  printf ("before val2 : %d\n", val2);
+  Write_val(wh[0], addr2, &val1);
+  printf ("write Done\n"); 
+  Read_val(wh[1], addr2, &val2); 
+  printf ("after val2 : %d\n", val2); 
+  val2 = 0;
+  Read_val(wh[2], addr2, &val2);
+  printf ("local read : %d\n", val2);
+  val2 = 10;
+  Write_val(wh[2], addr2, &val2);
+  Read_val(wh[1], addr2, &val2); 
+  printf ("after val2 : %d\n", val2); 
+  return;
+*/
+   
   // Start iteration
   int Iteration = 1;
   printf ("Start\n");
@@ -282,7 +301,7 @@ void Test_writeshared() {
   long End = get_time();
   printf ("End\n");
   printf ("running time : %lld\n", End - Start);
-  uint64 Total_transfer = 0;
+  uint64 Total_transfer = 0; 
   uint64 Total_racetime = 0;
   uint64 Total_requesttime = 0;
   for (int i = 0; i < 3; ++i) {
@@ -298,7 +317,7 @@ void Test_writeshared() {
 
 void Solve (){
   Create_master();
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 3; ++i) {
     Create_worker();
   }
 

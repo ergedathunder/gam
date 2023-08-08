@@ -164,6 +164,80 @@ int Worker::ProcessLocalRead(WorkRequest* wr) {
           i = nextb;
           continue;
         }
+#ifdef SUB_BLOCK
+        else if (Ds == WRITE_SHARED) {
+          vector<int> & CurSubSize = directory.GetSubSize(entry);
+          directory.unlock(laddr);
+
+          int TotalSize = 0;
+
+          for (int j = 0; j < (int)CurSubSize.size(); ++j) {
+            int CurSize = CurSubSize[j];
+            GAddr CurStart = i + TotalSize;
+            GAddr CurEnd = CurStart + CurSize;
+
+            if (CurEnd <= start) { //end
+              TotalSize += CurSize;
+              continue;
+            }
+
+            if (CurStart >= end) { //no more subblock
+              break;
+            }
+
+            void* DirStart = ToLocal(CurStart);
+            directory.lock(DirStart); //锁上当前子块目录
+
+            DirEntry * CurEntry = directory.GetSubEntry(DirStart);
+            DirState Curs = directory.GetState(CurEntry);
+
+            if (unlikely(directory.InTransitionState(Curs))) {
+              epicLog(LOG_INFO, "directory in transition state when local read %d",
+                      Curs);
+              //we increase the counter in case
+              //we false call Notify()
+              wr->counter++;
+              AddToServeLocalRequest(CurStart, wr);
+              directory.unlock(DirStart);
+              wr->unlock();
+              wr->is_cache_hit_ = false;
+              return IN_TRANSITION;
+            }
+
+            if (unlikely (Curs == DIR_DIRTY) ) {
+              WorkRequest* lwr = new WorkRequest(*wr);
+              lwr->counter = 0;
+              GAddr rc = directory.GetSList(CurEntry).front();  //only one worker is updating this line
+              Client* cli = GetClient(rc);
+              lwr->op = FETCH_AND_SHARED;
+              lwr->addr = CurStart;
+              lwr->size = CurSize;
+              lwr->ptr = DirStart;
+              lwr->parent = wr;
+              wr->counter++;
+              wr->is_cache_hit_ = false;
+              //intermediate state
+              epicAssert(Curs != DIR_TO_SHARED);
+              epicAssert(!directory.IsBlockLocked(CurEntry));
+              directory.ToToShared(CurEntry, rc);
+              SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
+            } else {
+              GAddr gs = CurStart > start ? CurStart : start;
+              void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+              int len = CurEnd > end ? GMINUS(end, gs) : GMINUS(CurEnd, gs);
+              memcpy(ls, ToLocal(gs), len);
+            }
+            directory.unlock(DirStart);
+            TotalSize += CurSize;
+            continue;
+          }
+          i = nextb;
+          continue;
+        }
+#endif
+        else {
+
+        }
       }
       /* add ergeda add */
 
@@ -456,6 +530,115 @@ int Worker::ProcessLocalWrite(WorkRequest* wr) {
           i = nextb;
           continue;
         }
+#ifdef SUB_BLOCK
+        else if (Ds == WRITE_SHARED) {
+          vector<int> & CurSubSize = directory.GetSubSize(entry);
+          directory.unlock(laddr);
+
+          int TotalSize = 0;
+
+          for (int j = 0; j < (int)CurSubSize.size(); ++j) {
+            int CurSize = CurSubSize[j];
+            GAddr CurStart = i + TotalSize;
+            GAddr CurEnd = CurStart + CurSize;
+
+            if (CurEnd <= start) { //end
+              TotalSize += CurSize;
+              continue;
+            }
+
+            if (CurStart >= end) { //no more subblock
+              break;
+            }
+
+            void* DirStart = ToLocal(CurStart);
+            directory.lock(DirStart); //锁上当前子块目录
+
+            DirEntry * CurEntry = directory.GetSubEntry(DirStart);
+            DirState Curs = directory.GetState(CurEntry);
+
+            if (unlikely(directory.InTransitionState(Curs))) {
+              epicLog(LOG_INFO, "directory in transition state when local read %d",
+                      Curs);
+              //we increase the counter in case
+              //we false call Notify()
+              wr->counter++;
+              if (wr->flag & ASYNC) {
+                if (!wr->IsACopy()) {
+                  wr->unlock();
+                  wr = wr->Copy();
+                  wr->lock();
+                }
+              }
+              AddToServeLocalRequest(CurStart, wr);
+              directory.unlock(DirStart);
+              wr->unlock();
+              wr->is_cache_hit_ = false;
+              return IN_TRANSITION;
+            }
+
+            if (Curs == DIR_DIRTY || Curs == DIR_SHARED) {
+              list<GAddr>& shared = directory.GetSList(CurEntry);
+              WorkRequest* lwr = new WorkRequest(*wr);
+              lwr->counter = 0;
+              lwr->op = Curs == DIR_DIRTY ? FETCH_AND_INVALIDATE : INVALIDATE;
+              lwr->addr = CurStart;
+              lwr->size = CurSize;
+              lwr->ptr = DirStart;
+              wr->is_cache_hit_ = false;
+              if (wr->flag & ASYNC) {
+                if (!wr->IsACopy()) {
+                  wr->unlock();
+                  wr = wr->Copy();
+                  wr->lock();
+                }
+              }
+              lwr->parent = wr;
+              lwr->id = GetWorkPsn();
+              lwr->counter = shared.size();
+              wr->counter++;
+              epicAssert(Curs != DIR_TO_UNSHARED);
+              epicAssert(
+                  (Curs == DIR_DIRTY && !directory.IsBlockLocked(CurEntry))
+                      || (Curs == DIR_SHARED && !directory.IsBlockWLocked(CurEntry)));
+              directory.ToToUnShared(CurEntry);
+              //we move AddToPending before submit request
+              //since it is possible that the reply comes back before we add to the pending list
+              //if we AddToPending at last
+              AddToPending(lwr->id, lwr);
+              for (auto it = shared.begin(); it != shared.end(); it++) {
+                Client* cli = GetClient(*it);
+                epicLog(LOG_DEBUG, "invalidate (%d) cache from worker %d (lwr = %lx)",
+                        lwr->op, cli->GetWorkerId(), lwr);
+                SubmitRequest(cli, lwr);
+                //lwr->counter++;
+              }
+            }else {
+#ifdef GFUNC_SUPPORT
+              if (wr->flag & GFUNC) {
+                epicAssert(wr->gfunc);
+                epicAssert(TOBLOCK(wr->addr) == TOBLOCK(GADD(wr->addr, wr->size-1)));
+                epicAssert(i == start_blk);
+                void* laddr = ToLocal(wr->addr);
+                wr->gfunc(laddr, wr->arg);
+              } else {
+#endif
+                  GAddr gs = CurStart > start ? CurStart : start;
+                  void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+                  int len = CurEnd > end ? GMINUS(end, gs) : GMINUS(CurEnd, gs);
+                  memcpy(ToLocal(gs), ls, len);
+                  epicLog(LOG_DEBUG, "copy dirty data in advance");
+#ifdef GFUNC_SUPPORT
+              }
+#endif
+            }
+
+            directory.unlock(DirStart);
+            TotalSize += CurSize;
+            continue;
+          }
+        }
+#endif
       }
       /* add ergeda add */
 

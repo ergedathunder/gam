@@ -21,8 +21,8 @@ ibv_device **curlist;
 Worker *worker[10];  
 Master *master;
 int num_worker = 0;
-int num_threads = 4;
-int iteration_times=50;   
+int num_threads = 8; 
+int iteration_times=1;   
 
 void Create_master()
 {
@@ -104,7 +104,7 @@ GAddr Malloc_addr(WorkerHandle *Cur_wh, const Size size, Flag flag, int Owner)
 void Init_Gam() {
     curlist = ibv_get_device_list(NULL);
     Create_master();
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 8; ++i)
     {
         Create_worker();
     }
@@ -149,9 +149,9 @@ int main() {
     srand(time(NULL));
     Init_Gam();
 
-    int N = 512;
+    int N = 512; 
     GAddr A, B, X;
-    A = Malloc_addr(wh[0], sizeof(float) * N * N, 0, 0);  
+    A = Malloc_addr(wh[0], sizeof(float) * N * N, Write_shared, 1);  
     B = Malloc_addr(wh[0], sizeof(float) * N, 0, 0); 
     X = Malloc_addr(wh[0], sizeof(float) * N, 0, 0);
 
@@ -201,7 +201,7 @@ int main() {
         //if (num_threads > (N - i - 1) ) num_threads = N - i - 1; 
 
         int apartx = 2; 
-        int aparty = 2;
+        int aparty = 4;
         int Intervalx = (N - i - 1) / apartx;
         int Intervaly = (N - i - 1) / aparty;
 

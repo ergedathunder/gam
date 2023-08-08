@@ -6,16 +6,26 @@
 
 DirState Directory::GetState(ptr_t ptr) {
   DirState s = DIR_UNSHARED;
+#ifdef SUB_BLOCK
+  if (dir.count(ptr)) {
+    s = dir.at(ptr)->state;
+  }
+#else
   if (dir.count(TOBLOCK(ptr))) {
     s = dir.at(TOBLOCK(ptr))->state;
   }
+#endif
   return s;
 }
 
 bool Directory::InTransitionState(ptr_t ptr) {
   bool ret = false;
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   if (dir.count(block)) {
     DirEntry* entry = dir.at(block);
     epicLog(LOG_DEBUG, "found the directory entry for %lx, state = %d", block,
@@ -63,7 +73,11 @@ void Directory::ToShared(DirEntry* entry, GAddr addr) {
 DirEntry* Directory::ToShared(void* ptr, GAddr addr) {
   //TODO: add a check on the max shared entries to 128 (i.e., MAX_UNSIGNED_CHAR)
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   DirEntry* entry = GetEntry(block);
   if (!entry) {
     entry = new DirEntry();
@@ -107,7 +121,11 @@ void Directory::Remove(DirEntry*& entry, int wid) {
 
 void Directory::Remove(void* ptr, int wid) {
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   DirEntry* entry = GetEntry(block);
   epicAssert(entry);
   Remove(entry, wid);
@@ -122,7 +140,11 @@ void Directory::UndoShared(DirEntry* entry) {
 void Directory::UndoShared(void* ptr) {
   epicLog(LOG_DEBUG, "UndoShared");
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   try {
     DirEntry* entry = dir.at(block);
     UndoShared(entry);
@@ -182,7 +204,11 @@ void Directory::ToDirty(DirEntry* entry, GAddr addr) {
 
 DirEntry* Directory::ToDirty(void* ptr, GAddr addr) {
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   DirEntry* entry = GetEntry(ptr);
   if (!entry) {
     entry = new DirEntry();
@@ -205,7 +231,11 @@ void Directory::UndoDirty(DirEntry* entry) {
 
 void Directory::UndoDirty(void* ptr) {
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   try {
     DirEntry* entry = dir.at(block);
     UndoDirty(entry);
@@ -230,7 +260,12 @@ void Directory::ToToShared(DirEntry* entry, GAddr addr) {
 void Directory::ToToShared(void* ptr, GAddr addr) {
   //TODO: add a check on the max shared entries to 128 (i.e., MAX_UNSIGNED_CHAR)
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
+  
   DirEntry* entry = GetEntry(block);
   ToToShared(entry, addr);
 }
@@ -247,7 +282,11 @@ void Directory::ToToUnShared(DirEntry* entry) {
  * WRITE Case 1 (shared to unshared), WRITE Case 2 (dirty to unshared)
  */
 void Directory::ToToUnShared(void* ptr) {
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   epicAssert((ptr_t )ptr == block);
   DirEntry* entry = GetEntry(block);
   ToToUnShared(entry);
@@ -263,7 +302,11 @@ void Directory::ToToUnShared(void* ptr) {
  */
 DirEntry* Directory::ToToDirty(void* ptr, GAddr addr) {
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   DirEntry* entry = GetEntry(block);
   if (!entry) {  //unshared to dirty
     entry = new DirEntry();
@@ -295,7 +338,12 @@ int Directory::RLock(DirEntry* entry, ptr_t ptr) {
 
 int Directory::RLock(ptr_t ptr) {
   //epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
+
   DirEntry* entry = GetEntry(block);
   if (!entry) {
     entry = new DirEntry();
@@ -327,7 +375,12 @@ int Directory::WLock(DirEntry* entry, ptr_t ptr) {
  */
 int Directory::WLock(ptr_t ptr) {
   //epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
+
   DirEntry* entry = GetEntry(block);
   if (!entry) {
     entry = new DirEntry();
@@ -350,7 +403,12 @@ bool Directory::IsWLocked(DirEntry* entry, ptr_t ptr) {
 }
 
 bool Directory::IsWLocked(ptr_t ptr) {
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
+
   DirEntry* entry = GetEntry(block);
   if (!entry) {
     return false;
@@ -367,7 +425,12 @@ bool Directory::IsRLocked(DirEntry* entry, ptr_t ptr) {
 }
 
 bool Directory::IsRLocked(ptr_t ptr) {
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
+
   DirEntry* entry = GetEntry(block);
   if (!dir.count(block)) {
     return false;
@@ -439,7 +502,13 @@ void Directory::UnLock(DirEntry*& entry, ptr_t ptr) {
 }
 
 void Directory::UnLock(ptr_t ptr) {
+
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
+
   try {
     DirEntry* entry = dir.at(block);
     UnLock(entry, ptr);
@@ -487,7 +556,12 @@ void Directory::Clear(DirEntry*& entry, GAddr addr) {
 
 void Directory::Clear(ptr_t ptr, GAddr addr) {
   epicAssert((ptr_t)ptr == TOBLOCK(ptr));
+
+#ifdef SUB_BLOCK
+  ptr_t block = (ptr_t)ptr;
+#else
   ptr_t block = TOBLOCK(ptr);
+#endif
   DirEntry* entry = GetEntry(block);
   epicAssert(!InTransitionState(entry));
   if (entry) {

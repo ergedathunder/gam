@@ -1,7 +1,6 @@
 // Copyright (c) 2018 The GAM Authors 
 
 void Worker::ProcessRemoteRead(Client* client, WorkRequest* wr) {
-  //Just_for_test("remote read", wr);
   epicAssert(IsLocal(wr->addr));
 #ifdef SELECTIVE_CACHING
   void* laddr = ToLocal(TOBLOCK(wr->addr));
@@ -9,7 +8,12 @@ void Worker::ProcessRemoteRead(Client* client, WorkRequest* wr) {
   void* laddr = ToLocal(wr->addr);
 #endif
   directory.lock(laddr);
-  DirEntry* entry = directory.GetEntry(laddr);
+  DirEntry* entry = directory.GetEntry(laddr); //getentry要改
+#ifdef SUB_BLOCK
+  if (wr->flag & Write_shared) {
+    entry = directory.GetSubEntry(laddr);
+  }
+#endif
   if (directory.InTransitionState(entry)) {
     //to_serve_requests[wr->addr].push(pair<Client*, WorkRequest*>(client, wr));
     AddToServeRemoteRequest(wr->addr, client, wr);
@@ -49,7 +53,7 @@ void Worker::ProcessRemoteRead(Client* client, WorkRequest* wr) {
         epicAssert(
             directory.GetState(entry) == DIR_UNSHARED
             || directory.GetState(entry) == DIR_SHARED);
-        directory.ToShared(entry, client->ToGlobal(wr->ptr));
+        directory.ToShared(entry, client->ToGlobal(wr->ptr)); 
       } else {
         epicAssert(directory.GetState(entry) == DIR_UNSHARED);
         directory.ToShared(laddr, client->ToGlobal(wr->ptr));
@@ -94,6 +98,9 @@ void Worker::ProcessRemoteReadCache(Client* client, WorkRequest* wr) {
   epicAssert(BLOCK_ALIGNED(wr->addr));
 #endif
   GAddr blk = TOBLOCK(wr->addr);
+#ifdef SUB_BLOCK
+  blk = wr->addr;
+#endif
   cache.lock(blk);
   CacheLine* cline = cache.GetCLine(blk);
   if (!cline) {
@@ -182,8 +189,19 @@ void Worker::ProcessRemoteReadCache(Client* client, WorkRequest* wr) {
 #else
       epicAssert(BLOCK_ALIGNED(wr->addr) || wr->size < BLOCK_SIZE);
       cli->WriteWithImm(wr->ptr, cline->line, wr->size, wr->pid);  //reply to the local node
+#ifdef SUB_BLOCK
+      if (wr->flag & Write_shared) {
+        client->WriteWithImm(client->ToLocal(blk), cline->line, cline->CacheSize,
+          wr->id);  //writeback to home node
+      }
+      else {
+        client->WriteWithImm(client->ToLocal(blk), cline->line, BLOCK_SIZE,
+          wr->id);  //writeback to home node
+      }
+#else
       client->WriteWithImm(client->ToLocal(blk), cline->line, BLOCK_SIZE,
           wr->id);  //writeback to home node
+#endif
 #endif
     }
 
@@ -290,7 +308,17 @@ void Worker::ProcessRemoteWrite(Client* client, WorkRequest* wr) {
 #endif
   epicAssert(BLOCK_ALIGNED((uint64_t)laddr));
   directory.lock(laddr);
-  DirEntry* entry = directory.GetEntry(laddr);
+  DirEntry* entry;
+#ifdef SUB_BLOCK
+  if (wr->flag & Write_shared) {
+    //epicLog(LOG_WARNING, "remote sub write here");
+    entry = directory.GetSubEntry(laddr);
+  }
+  else entry = directory.GetEntry(laddr);
+#else
+  entry = directory.GetEntry(laddr);
+#endif
+
   DirState state = directory.GetState(entry);
   if (directory.InTransitionState(state)) {
     AddToServeRemoteRequest(wr->addr, client, wr);
@@ -483,7 +511,17 @@ void Worker::ProcessRemoteWriteCache(Client* client, WorkRequest* wr) {
   //we hold an updated copy of the line (WRITE_FORWARD: Case 4)
   GAddr to_lock = wr->addr;
   cache.lock(to_lock);
-  CacheLine* cline = cache.GetCLine(wr->addr);
+  CacheLine* cline;
+#ifdef SUB_BLOCK
+  if (wr->flag & Write_shared) {
+    //epicLog(LOG_WARNING, "invalid forward cache");
+    cline = cache.GetSubCline(wr->addr);
+  }
+  else cline = cache.GetCLine(wr->addr);
+#else
+  cline = cache.GetCLine(wr->addr);
+#endif
+  
   if (!cline) {
     if (INVALIDATE == op_orin || INVALIDATE_FORWARD == op_orin) {
       //this should because of cache line eviction from shared to invalid

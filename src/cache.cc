@@ -39,7 +39,8 @@ int Cache::ReadWrite(WorkRequest* wr) {
 
     GAddr nextb = BADD(i, 1);
     /* add ergeda add */
-    worker->directory.lock((void*)i);
+    bool breakflag = 0; //循环内还有循环枚举子块，用于判断是否需要跳出循环(好像并没用)
+    worker->directory.lock((void*)i); //TODO：这里的目录是否不用上锁
     DirEntry * Entry = worker->directory.GetEntry((void*)i);
     if (Entry == nullptr) { //no metadata in the first time;
       //worker->Just_for_test("get Directory", wr);
@@ -389,6 +390,163 @@ int Cache::ReadWrite(WorkRequest* wr) {
       }
     }
     //worker->Just_for_test("cache.cc", wr);
+    /* add xmx add */
+#ifdef SUB_BLOCK
+    else if (Cur_Dstate == DataState::WRITE_SHARED) {
+      worker->directory.unlock((void*)i); //先解锁，事实上这个目录目前是只读
+      int TotalSize = 0; // 记录从i开始偏移了多少
+      for (int j = 0; j < (int)Entry->SubSize.size(); ++j) { //枚举子块目录
+        int CurSize = Entry->SubSize[j]; //当前子块的容量
+        GAddr CurStart = i + TotalSize; //当前子块起始地址
+        GAddr CurEnd = CurStart + CurSize; //当前子块结束地址，左闭右开
+
+        if (CurEnd <= start) { // 还没到读写的位置
+          TotalSize += CurSize;
+          continue;
+        }
+
+        else if (CurStart >= end) { //出了读写范围
+          breakflag = 1;
+          break;
+        }
+        //worker->directory.lock( (void*) (CurStart) ); //锁住子块目录,没必要似乎？
+
+        lock(CurStart); //锁住CurStart代表的本地cache
+        CacheLine * cline = nullptr; // cache所在内存
+        cline = GetSubCline(CurStart);
+        CacheState CurState = CACHE_INVALID; //缓存块状态，由于evict未必能实现，所以暂且假设没有和有都可能invalid
+        if (cline != nullptr) CurState = cline->state; //有缓存块
+
+        if (CurState != CACHE_INVALID) { // 已经创建cache
+          //xeg TODO:在某些中间态仍然是可以读的，若速度慢可以再考虑
+          if (unlikely(InTransitionState(CurState))) { //先判断是否在中间态
+            epicLog(LOG_INFO, "in transition state while cache read/write(%d)", wr->op);
+            //we increase the counter in case
+            //we false call Notify()
+            wr->counter++;
+            wr->unlock();
+            if (wr->flag & ASYNC) {
+              if (!wr->IsACopy()) {
+                //wr->unlock();
+                wr = wr->Copy();
+                //wr->lock();
+              }
+            }
+
+            worker->AddToServeLocalRequest(CurStart, wr); //对应起始地址创建等待队列
+            unlock(CurStart);
+
+            return 1;
+          }
+
+          MyAssert(CurState == CACHE_SHARED || CurState == CACHE_DIRTY);
+
+          GAddr gs = CurStart > start ? CurStart : start; //gs:读写起始地址
+          void* cs = (void*) ((ptr_t) cline->line + GMINUS(gs, CurStart)); //cacheline 复制起始点
+          void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start)); //ptr读写对应起始地址
+          int len = CurEnd > end ? GMINUS(end, gs) : GMINUS(CurEnd, gs); //复制长度
+
+          if (READ == wr->op) {
+            memcpy(ls, cs, len); //直接复制
+//    #ifdef USE_LRU
+//            UnLinkLRU(cline);
+//            LinkLRU(cline);
+//    #endif
+          }
+
+          else if (WRITE == wr->op) {
+            if (CurState != CACHE_DIRTY) { //共享态，需要通知其他副本节点
+              MyAssert(CurState == CACHE_SHARED);
+              wr->is_cache_hit_ = false;
+              WorkRequest* lwr = new WorkRequest(*wr);
+              lwr->counter = 0;
+              lwr->op = WRITE_PERMISSION_ONLY;  //TODO: 改成某个subblock专有指令
+              lwr->flag |= CACHED;
+              lwr->flag |= Write_shared; //函数对于是否共享态处理不同
+              lwr->addr = CurStart;
+              lwr->size = CurSize;
+              lwr->ptr = cline->line;
+
+              if (wr->flag & ASYNC) {
+                if (!wr->IsACopy()) {
+                  wr->unlock();
+                  wr = wr->Copy();
+                  wr->lock();
+                }
+              }
+              lwr->parent = wr;
+              wr->counter++;
+
+              MyAssert(CurState != CACHE_TO_DIRTY);
+              ToToDirty(cline); //到中间态，等待其他节点目录状态转换
+    //#ifdef USE_LRU
+    //          UnLinkLRU(cline); //解绑cache
+    //#endif
+              memcpy(cs, ls, len); //直接将对应值复制写入cache
+              worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND); //最后提交请求以防之前请求成功返回影响。
+
+            } else { // dirty态，直接写入即可
+    
+                MyAssert(len);
+                //worker->logWrite(wr->addr, len, ls); //暂时用不上
+                memcpy(cs, ls, len);
+
+    // #ifdef USE_LRU
+    //           UnLinkLRU(cline);
+    //           LinkLRU(cline);
+    // #endif
+            }
+          }
+        }
+
+        else { //子块不存在cache
+          //epicLog(LOG_WARNING, "read flow got cache.cc: no cache");
+          MyAssert (CurState == CACHE_INVALID);
+          WorkRequest* lwr = new WorkRequest(*wr);
+          //newcline++; //暂时不支持evict操作
+          if (cline == nullptr) { //不存在cache，需要重新创建
+            cline = SetSubline(CurStart, CurSize);
+          }
+          
+          lwr->counter = 0;
+          lwr->flag |= CACHED;
+          lwr->flag |= Write_shared;
+          lwr->addr = CurStart;
+          lwr->size = CurSize;
+          lwr->ptr = cline->line;
+          wr->is_cache_hit_ = false;
+
+          if (wr->flag & ASYNC) {
+            if (!wr->IsACopy()) {
+              wr->unlock();
+              wr = wr->Copy();
+              wr->lock();
+            }
+          }
+
+          lwr->parent = wr;
+          wr->counter++;
+
+          if (READ == wr->op) {
+            MyAssert(cline->state != CACHE_TO_SHARED); //读变为shared态，共享
+            ToToShared(cline); //即将从invalid变成shared
+          } else {  //WRITE
+            MyAssert(cline->state != CACHE_TO_DIRTY); //写变为dirty态，独享
+            ToToDirty(cline);
+          }
+          worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
+        }
+
+        unlock(CurStart);
+        //worker->directory.unlock( (void*) (CurStart) );
+        TotalSize += CurSize;
+      }
+
+      i = nextb;
+      continue;
+    }
+#endif
+    /* add xmx add */
     /* add ergeda add */
     lock(i);
     CacheLine* cline = nullptr;
@@ -902,6 +1060,9 @@ void Cache::SetWorker(Worker* w) {
 
 void* Cache::GetLine(GAddr addr) {
   GAddr block = GTOBLOCK(addr);
+#ifdef SUB_BLOCK
+  block = addr;
+#endif
   if (caches.count(block)) {
     CacheLine* cline = caches.at(block);
     epicAssert(GetState(cline) != CACHE_INVALID);
@@ -1138,6 +1299,9 @@ void Cache::Evict(CacheLine* cline) {
 CacheLine* Cache::SetCLine(GAddr addr, void* line) {
   epicAssert(addr == GTOBLOCK(addr));
   GAddr block = GTOBLOCK(addr);
+#ifdef SUB_BLOCK
+  block = addr;
+#endif
   CacheLine* cl = nullptr;
   if (caches.count(block)) {
     epicLog(LOG_INFO, "cache line for gaddr %lx already exist in the cache",
@@ -1176,6 +1340,9 @@ void* Cache::SetLine(GAddr addr, caddr line) {
 void Cache::ToShared(GAddr addr) {
   epicAssert(addr == GTOBLOCK(addr));
   GAddr block = GTOBLOCK(addr);
+#ifdef SUB_BLOCK
+  block = addr;
+#endif
   try {
     CacheLine* cline = caches.at(block);
     ToShared(cline);
@@ -1199,6 +1366,9 @@ void Cache::ToNotCache(CacheLine* cline, bool write) {
 void Cache::UndoShared(GAddr addr) {
   epicAssert(addr == GTOBLOCK(addr));
   GAddr block = GTOBLOCK(addr);
+#ifdef SUB_BLOCK
+  block = addr;
+#endif
   try {
     CacheLine* cline = caches.at(block);
     UndoShared(cline);
@@ -1230,8 +1400,12 @@ void Cache::ToInvalid(CacheLine* cline) {
 #endif
   void* line = cline->line;
   worker->sb.sb_free((char*) line - CACHE_LINE_PREFIX);
+#ifdef SUB_BLOCK
+  used_bytes -= (cline->CacheSize + CACHE_LINE_PREFIX);
+#else
   used_bytes -= (BLOCK_SIZE + CACHE_LINE_PREFIX);
-
+#endif
+  
   epicAssert(!IsBlockLocked(cline));
 
 #ifdef USE_LRU
@@ -1250,7 +1424,11 @@ void Cache::ToInvalid(CacheLine* cline) {
 
 void Cache::ToInvalid(GAddr addr) {
   epicAssert(addr == GTOBLOCK(addr));
+#ifdef SUB_BLOCK
+  GAddr block = addr;
+#else
   GAddr block = GTOBLOCK(addr);
+#endif
   CacheLine* cline = nullptr;
   try {
     cline = caches.at(block);
@@ -1265,6 +1443,9 @@ void Cache::ToInvalid(GAddr addr) {
 void Cache::ToDirty(GAddr addr) {
   epicAssert(addr == GTOBLOCK(addr));
   GAddr block = GTOBLOCK(addr);
+#ifdef SUB_BLOCK
+  block = addr;
+#endif
   try {
     CacheLine* cline = caches.at(block);
     ToDirty(cline);
@@ -1281,6 +1462,9 @@ void Cache::ToDirty(GAddr addr) {
 void Cache::ToToShared(GAddr addr) {
   epicAssert(addr == GTOBLOCK(addr));
   GAddr block = GTOBLOCK(addr);
+#ifdef SUB_BLOCK
+  block = addr;
+#endif
   try {
     CacheLine* cline = caches.at(block);
     ToToShared(cline);

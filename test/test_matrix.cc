@@ -125,10 +125,11 @@ uint64 Transfer[100], Racetime[100], Requesttime[100];
 
 void Answer_check(int n, GAddr c) {
     int Round = 5;
+    int Curx = 3, Cury = 15;
     for (int i = 0; i < Round; ++i) {
         int x = rand() % n;
         int y = rand() % n;
-        x = 236, y = 169;
+        x = Curx, y = Cury + i;
         printf ("x : %d, y : %d\n", x, y);
         float val;
         Read_val(wh[0], c + (x * n + y) * sizeof(float), &val, sizeof(float));
@@ -143,11 +144,11 @@ int main(int argc, char** argv)
     Init_Gam();  
 	// Init matrix
     GAddr a, b, c, d;
-	int n = 256;
+	int n = 256; 
 	if (argc == 2) n = atoi(argv[1]);
     a = Malloc_addr(wh[0], sizeof(float) * n * n, 0, 0);
 	b = Malloc_addr(wh[1], sizeof(float) * n * n, 0, 0); 
-    c = Malloc_addr(wh[2], sizeof(float) * n * n, 0, 0);
+    c = Malloc_addr(wh[2], sizeof(float) * n * n, 0, 0); 
  
 	genMat(a, n);
 	genMat(b, n);
@@ -221,9 +222,9 @@ static void matMultCPU_serial(WorkerHandle * Cur_wh, GAddr a, GAddr b, GAddr c, 
     for (int oo = 0; oo < test_iterations; ++oo) {    
         for (int i = Startx; i < Endx; i++)
         {
-            for (int j = Starty; j < Endy; j++)
+            for (int j = Starty; j < Endy; j++) 
             {
-                float t = 0;
+                float t = 0; 
                 for (int k = 0; k < n; k++)
                 {
                     float val1 = 0, val2 = 0;
@@ -239,6 +240,8 @@ static void matMultCPU_serial(WorkerHandle * Cur_wh, GAddr a, GAddr b, GAddr c, 
     }
 }
 
+int test_val = 1;
+
 void genMat(GAddr arr, int n)
 {
 	int i, j;
@@ -248,7 +251,9 @@ void genMat(GAddr arr, int n)
 		for (j = 0; j < n; j++)
 		{
             float val = (float)rand() / RAND_MAX + (float)rand() / (RAND_MAX * RAND_MAX);
+            val = (float)test_val;
             Write_val(wh[0], arr + (i * n + j) * sizeof(float), &val, sizeof(float));
+            test_val = test_val + 1;
 		}
 	}
 }

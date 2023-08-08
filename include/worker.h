@@ -313,10 +313,24 @@ class Worker : public Server {
     if (flag & Read_mostly) return DataState::READ_MOSTLY;
     return DataState::MSI;
   }
+  
   void Just_for_test (char * Func, WorkRequest * wr) { // for debug
     epicLog (LOG_WARNING, "Worker %d implement Func : %s with op : %d, addr : %llx, flag : %x, size : %d", GetWorkerId(), Func, wr->op, wr->addr, wr->flag, wr->size);
   }
+
   /* add ergeda add */
+
+  /* add xmx add */
+#ifdef SUB_BLOCK
+  // sub_block
+  void ProcessRemoteSubRead(Client* client, WorkRequest* wr);
+  void ProcessRemoteSubReadCache(Client* client, WorkRequest* wr);
+  void ProcessRemoteSubReadReply(Client* client, WorkRequest* wr);
+  void ProcessRemoteSubWrite(Client* client, WorkRequest* wr);
+  void ProcessRemoteSubWriteCache(Client* client, WorkRequest* wr);
+  void ProcessRemoteSubWriteReply(Client* client, WorkRequest* wr);
+#endif
+  /* add xmx add */
 
 #ifdef DHT
   int ProcessLocalHTable(WorkRequest* wr);

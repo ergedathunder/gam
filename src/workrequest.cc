@@ -166,7 +166,12 @@ int WorkRequest::Ser(char* buf, int& len) {
       len = appendInteger(buf, lop, id, wid, status);
       break;
     case WRITE_REPLY:
-      len = appendInteger(buf, lop, id, wid, status, counter.load());
+#ifdef SUB_BLOCK
+  len = appendInteger(buf, lop, id, wid, status, counter.load(), flag);
+#else
+  len = appendInteger(buf, lop, id, wid, status, counter.load());
+#endif
+      
       break;
     case ACTIVE_INVALIDATE:
     case WRITE_BACK:
@@ -346,7 +351,11 @@ int WorkRequest::Deser(const char* buf, int& len) {
       break;
     case WRITE_REPLY:
       int c;
+#ifdef SUB_BLOCK
+      p += readInteger(p, id, wid, status, c, flag);
+#else
       p += readInteger(p, id, wid, status, c);
+#endif
       counter = c;
       break;
     case ACTIVE_INVALIDATE:

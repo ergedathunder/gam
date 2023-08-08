@@ -28,7 +28,20 @@ void Worker::ProcessPendingRead(Client* cli, WorkRequest* wr) {
   WorkRequest* parent = wr->parent;
   CacheLine* cline = nullptr;
   DirEntry* entry = nullptr;
-  GAddr blk = TOBLOCK(wr->addr);
+  GAddr blk;
+#ifdef SUB_BLOCK
+  if (wr->flag & Write_shared) {
+    blk = wr->addr;
+  }
+  else blk = TOBLOCK(wr->addr);
+#else
+  blk = TOBLOCK(wr->addr);
+#endif
+
+#ifdef SUB_BLOCK
+  blk = wr->addr;
+#endif
+
 #ifndef SELECTIVE_CACHING
   epicAssert(blk == wr->addr);
 #endif
@@ -37,11 +50,25 @@ void Worker::ProcessPendingRead(Client* cli, WorkRequest* wr) {
   if (wr->flag & CACHED) {
     epicAssert(!IsLocal(wr->addr));
     cache.lock(blk);
+#ifdef SUB_BLOCK
+  if (wr->flag & Write_shared) {
+    cline = cache.GetSubCline(wr->addr);
+  }
+  else cline = cache.GetCLine(wr->addr);
+#else
     cline = cache.GetCLine(wr->addr);
+#endif
     epicAssert(cline);
   } else if (IsLocal(wr->addr)) {
     directory.lock(ToLocal(wr->addr));
+#ifdef SUB_BLOCK
+    if (wr->flag & Write_shared) {
+      entry = directory.GetSubEntry(ToLocal(wr->addr));
+    }
+    else entry = directory.GetEntry(ToLocal(wr->addr));
+#else
     entry = directory.GetEntry(ToLocal(wr->addr));
+#endif
     epicAssert(entry);
   } else {
     epicLog(LOG_WARNING, "shouldn't happen");
@@ -170,7 +197,15 @@ void Worker::ProcessPendingWrite(Client* cli, WorkRequest* wr) {
   if (wr->flag & CACHED) {
     epicAssert(!IsLocal(wr->addr));
     cache.lock(wr->addr);
+#ifdef SUB_BLOCK
+    if (wr->flag & Write_shared) {
+      //epicLog (LOG_WARNING, "process pending write");
+      cline = cache.GetSubCline(wr->addr);
+    }
+    else cline = cache.GetCLine(wr->addr);
+#else
     cline = cache.GetCLine(wr->addr);
+#endif
     epicAssert(cline);
   } else if (IsLocal(wr->addr)) {
     directory.lock(ToLocal(wr->addr));
@@ -292,6 +327,7 @@ void Worker::ProcessPendingWrite(Client* cli, WorkRequest* wr) {
 #endif
 
     if (!(wr->flag & LOCKED)) {
+      //epicLog(LOG_WARNING, "copy done");
       GAddr pend = GADD(parent->addr, parent->size);
       GAddr end = GADD(wr->addr, wr->size);
       GAddr gs = wr->addr > parent->addr ? wr->addr : parent->addr;
@@ -515,7 +551,16 @@ void Worker::ProcessPendingInvalidateForward(Client* cli, WorkRequest* wr) {
   wr->counter--;
   epicLog(LOG_DEBUG, "wr->counter after = %d", wr->counter.load());
 
-  DirEntry* entry = directory.GetEntry(ToLocal(wr->addr));
+  DirEntry* entry;
+#ifdef SUB_BLOCK
+  if (wr->flag & Write_shared) {
+    //epicLog(LOG_WARNING, "pending invalid forward");
+    entry = directory.GetSubEntry(ToLocal(wr->addr));
+  }
+  else entry = directory.GetEntry(ToLocal(wr->addr));
+#else
+  entry = directory.GetEntry(ToLocal(wr->addr));
+#endif
 
   epicAssert(directory.GetState(entry) == DIR_TO_DIRTY);
   directory.Remove(entry, cli->GetWorkerId());

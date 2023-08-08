@@ -19,6 +19,12 @@ enum DirState {
   DIR_TO_UNSHARED
 };
 
+/* 
+未解决问题：
+大目录的起始地址和第一个子块的起始地址是一样的。
+方案1：把子块的映射向后偏移一位，写一个专门服务子块的找目录的函数
+*/
+
 struct DirEntry {
   DirState state = DIR_UNSHARED;
   list<GAddr> shared;
@@ -31,6 +37,12 @@ struct DirEntry {
   //but if lock = EXCLUSIVE_LOCK_TAG, it is a exclusive lock
   //int lock = 0;
   unordered_map<ptr_t, int> locks;
+
+  #ifdef SUB_BLOCK
+  //std::vector <DirEntry *> SubEntry; //实际上子目录似乎只需要知道每个块大小情况即可，每个子块就会建一个目录，所以也不需要记录子目录位置。
+  int MySize;
+  std::vector <int> SubSize;
+  #endif
 };
 
 class Directory {
@@ -55,6 +67,10 @@ class Directory {
       DirEntry* entry, ptr_t ptr);
 
   DirEntry* GetEntry(ptr_t ptr) {
+#ifdef SUB_BLOCK
+    if (dir.count(ptr)) return dir.at(ptr);
+    else return nullptr;
+#endif
     if (dir.count(TOBLOCK(ptr))) {
       return dir.at(TOBLOCK(ptr));
     } else {
@@ -67,6 +83,9 @@ class Directory {
       ptr_t block);
   void Clear(ptr_t ptr, GAddr addr);
   inline list<GAddr>& GetSList(ptr_t ptr) {
+#ifdef SUB_BLOCK
+    return dir.at(ptr)->shared;
+#endif
     return dir.at(TOBLOCK(ptr))->shared;
   }
   inline void lock(ptr_t ptr) {
@@ -107,6 +126,20 @@ class Directory {
   DirEntry* GetEntry(void* ptr) {
     return GetEntry((ptr_t) ptr);
   }
+
+#ifdef SUB_BLOCK
+  DirEntry* GetSubEntry(ptr_t ptr) {
+    if (dir.count(ptr)) {
+      return dir.at(ptr);
+    } else {
+      return nullptr;
+    }
+  }
+
+  DirEntry * GetSubEntry(void * ptr) {
+    return GetSubEntry((ptr_t) ptr);
+  }
+#endif
 
   /* add ergeda add */
 
@@ -169,6 +202,28 @@ class Directory {
       entry->owner = Owner;
       dir[block] = entry;
     }
+#ifdef SUB_BLOCK
+    if (Cur_state == WRITE_SHARED) {
+      int Divide = 2;
+      int CurSize = (BLOCK_SIZE / Divide);
+
+      entry->MySize = CurSize;
+      entry->SubSize.push_back(CurSize);
+
+      ptr_t CurStart = block;
+      for (int i = 0; i < Divide - 1; ++i) {
+        CurStart += CurSize;
+        DirEntry * CurEntry = new DirEntry();
+        CurEntry->state = DIR_UNSHARED;
+        CurEntry->Dstate = Cur_state;
+        CurEntry->addr = CurStart;
+        CurEntry->owner = Owner;
+        dir[CurStart] = CurEntry;
+        entry->SubSize.push_back(CurSize);
+      }
+    }
+    else entry->MySize = 0;
+#endif
   }
 
   void SetShared(DirEntry * Entry) {
@@ -266,6 +321,11 @@ class Directory {
   list<GAddr>& GetSList(DirEntry* entry) {
     return entry->shared;
   }
+#ifdef SUB_BLOCK
+  vector<int>& GetSubSize(DirEntry * entry) {
+    return entry->SubSize;
+  }
+#endif
 
   //below are used for multithread programming
   inline void lock(void* ptr) {

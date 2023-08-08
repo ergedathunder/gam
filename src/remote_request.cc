@@ -23,6 +23,7 @@
 #include "remote_request_nocache.cc"
 #else //not NOCACHE
 #include "remote_request_cache.cc"
+#include "subblock.cc"
 #endif //NOCACHE
 
 #ifdef DHT
@@ -230,7 +231,7 @@ void Worker::ProcessRemoteReadType (Client * client, WorkRequest * wr) {
     epicLog(LOG_WARNING, "bug , cannot get to home_node\n");
   }
 
-  char buf[16];
+  char buf[100];
   wr->ptr = buf;
   wr->size = 12;
   wr->op = TYPE_REPLY;
@@ -245,6 +246,14 @@ void Worker::ProcessRemoteReadType (Client * client, WorkRequest * wr) {
   directory.unlock(laddr);
 
   appendInteger(buf, (int)Dstate, Owner);
+  /* add xmx add */
+#ifdef SUB_BLOCK
+  wr->size += appendInteger(buf + wr->size, (int)(entry->SubSize.size()) );
+  for (int i = 0; i < (int)(entry->SubSize.size()); ++i) {
+    wr->size += appendInteger(buf + wr->size, (int)entry->SubSize[i]);
+  }
+#endif
+/* add xmx add */
   SubmitRequest(client, wr);
   delete wr;
   wr = nullptr;
@@ -254,7 +263,8 @@ void Worker::ProcessRemoteTypeReply (Client * client, WorkRequest * wr) {
   //Just_for_test ("ProcessRemoteTypeReply", wr);
   int Tmp;
   GAddr Owner;
-  readInteger((char*) wr->ptr, Tmp, Owner);
+  int CurSize = 0;
+  CurSize += readInteger((char*) wr->ptr, Tmp, Owner);
   DataState Dstate = (DataState)Tmp;
 
   GAddr addr = TOBLOCK(wr->addr);
@@ -263,6 +273,20 @@ void Worker::ProcessRemoteTypeReply (Client * client, WorkRequest * wr) {
   directory.SetDataState(entry, Dstate);
   directory.SetMetaOwner(entry, Owner);
   directory.SetShared(entry);
+  /* add xmx add */
+#ifdef SUB_BLOCK
+  int Size;
+  CurSize += readInteger( ( (char*)wr->ptr + CurSize), Size);
+  //printf ("total_size : %d\n", Size);
+  //printf ("SubSize : ");
+  for (int i = 0; i < Size; ++i) {
+    int TmpSize = 0;
+    CurSize += readInteger ( ( (char*)wr->ptr + CurSize), TmpSize);
+    entry->SubSize.push_back(TmpSize);
+    //printf ("%d ", TmpSize);
+  } //printf ("\n");
+#endif
+  /* add xmx add */
   directory.unlock((void*)addr);
 
   int ret = ErasePendingWork(wr->id);
@@ -344,6 +368,11 @@ void whyO() {
 /* add ergeda add */
 
 void Worker::ProcessRequest(Client* client, WorkRequest* wr) {
+/*
+  if (TOBLOCK(wr->addr) != wr->addr) {
+    epicLog(LOG_WARNING, "address not right!!!");
+  }
+*/
   epicLog(LOG_DEBUG, "process remote request %d from worker %d", wr->op,
       client->GetWorkerId());
   epicAssert(wr->wid == 0 || wr->wid == client->GetWorkerId());

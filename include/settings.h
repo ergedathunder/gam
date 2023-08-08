@@ -29,6 +29,9 @@ using namespace std;
 //#define SELECTIVE_CACHING
 #define GFUNC_SUPPORT
 
+/* add xmx add */
+#define SUB_BLOCK
+/* add xmx add */
 //#define USE_PIPE_W_TO_H
 //#define USE_PIPE_H_TO_W
 #define USE_BOOST_QUEUE
@@ -64,14 +67,14 @@ using namespace std;
 
 /* add xmx add */
 //#define BLOCK_POWER 8
-#define BLOCK_POWER 9
-//#define BLOCK_POWER 10
+//#define BLOCK_POWER 9
+#define BLOCK_POWER 10
 //#define BLOCK_POWER 11
 //#define BLOCK_POWER 12
 
 //#define BLOCK_MASK 0xFFFFFFFFFFFFFF00L
-#define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
-//#define BLOCK_MASK 0xFFFFFFFFFFFFFC00L
+//#define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
+#define BLOCK_MASK 0xFFFFFFFFFFFFFC00L
 //#define BLOCK_MASK 0xFFFFFFFFFFFFF800L
 //#define BLOCK_MASK 0xFFFFFFFFFFFFF000L
 /* add xmx add */
