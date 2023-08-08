@@ -31,7 +31,7 @@
 
 
     struct Add : public Interface {
-    const static uint32_t FID = 0x001;
+    const static uint32_t FID = 0x002;
     struct Request : public photon::rpc::Message {
       uint32_t a;
       uint32_t work_id;

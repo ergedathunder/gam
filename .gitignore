@@ -1,0 +1,3 @@
+/fft/build/
+/src/*.o
+/src/*.a
