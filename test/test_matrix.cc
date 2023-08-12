@@ -135,6 +135,16 @@ void Answer_check(int n, GAddr c) {
         Read_val(wh[0], c + (x * n + y) * sizeof(float), &val, sizeof(float));
         printf (" c[%d][%d] = %.3f\n", x, y, val); 
     }
+
+    FILE* fp = fopen ("result_ws2.txt", "w"); 
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            float val;
+            Read_val(wh[2], c + (i * n + j) * sizeof(float), &val, sizeof(float));
+            fprintf (fp, "%lf ", val);
+        } fprintf (fp, "\n");
+    }
+    fclose(fp);
 }
 
 int main(int argc, char** argv)
@@ -145,10 +155,10 @@ int main(int argc, char** argv)
 	// Init matrix
     GAddr a, b, c, d;
 	int n = 256; 
-	if (argc == 2) n = atoi(argv[1]);
+	if (argc == 2) n = atoi(argv[1]); 
     a = Malloc_addr(wh[0], sizeof(float) * n * n, 0, 0);
 	b = Malloc_addr(wh[1], sizeof(float) * n * n, 0, 0); 
-    c = Malloc_addr(wh[2], sizeof(float) * n * n, 0, 0); 
+    c = Malloc_addr(wh[2], sizeof(float) * n * n, Write_shared, 0);  
  
 	genMat(a, n);
 	genMat(b, n);

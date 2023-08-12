@@ -235,8 +235,11 @@ void Worker::ProcessRemoteReadType (Client * client, WorkRequest * wr) {
   wr->ptr = buf;
   wr->size = 12;
   wr->op = TYPE_REPLY;
-
+#ifdef SUB_BLOCK
+  void * laddr = ToLocal(wr->addr);
+#else
   void* laddr = ToLocal(TOBLOCK(wr->addr));
+#endif
   //epicLog(LOG_WARNING, "addr : %lld, laddr : %llx\n", TOBLOCK(wr->addr), laddr);
   directory.lock(laddr);
   DirEntry* entry = directory.GetEntry(laddr);
@@ -248,10 +251,7 @@ void Worker::ProcessRemoteReadType (Client * client, WorkRequest * wr) {
   appendInteger(buf, (int)Dstate, Owner);
   /* add xmx add */
 #ifdef SUB_BLOCK
-  wr->size += appendInteger(buf + wr->size, (int)(entry->SubSize.size()) );
-  for (int i = 0; i < (int)(entry->SubSize.size()); ++i) {
-    wr->size += appendInteger(buf + wr->size, (int)entry->SubSize[i]);
-  }
+  wr->size += appendInteger(buf + wr->size, entry->MySize); //增加传输一个代表当前目录大小的变量
 #endif
 /* add xmx add */
   SubmitRequest(client, wr);
@@ -266,8 +266,11 @@ void Worker::ProcessRemoteTypeReply (Client * client, WorkRequest * wr) {
   int CurSize = 0;
   CurSize += readInteger((char*) wr->ptr, Tmp, Owner);
   DataState Dstate = (DataState)Tmp;
-
+#ifdef SUB_BLOCK
+  GAddr addr = wr->addr;
+#else
   GAddr addr = TOBLOCK(wr->addr);
+#endif
   directory.lock((void*)addr);
   DirEntry * entry = directory.GetEntry((void*)addr);
   directory.SetDataState(entry, Dstate);
@@ -277,14 +280,8 @@ void Worker::ProcessRemoteTypeReply (Client * client, WorkRequest * wr) {
 #ifdef SUB_BLOCK
   int Size;
   CurSize += readInteger( ( (char*)wr->ptr + CurSize), Size);
-  //printf ("total_size : %d\n", Size);
-  //printf ("SubSize : ");
-  for (int i = 0; i < Size; ++i) {
-    int TmpSize = 0;
-    CurSize += readInteger ( ( (char*)wr->ptr + CurSize), TmpSize);
-    entry->SubSize.push_back(TmpSize);
-    //printf ("%d ", TmpSize);
-  } //printf ("\n");
+  entry->MySize = Size;
+  //printf ("Current block's Size : %d\n", Size); // just for initial test
 #endif
   /* add xmx add */
   directory.unlock((void*)addr);

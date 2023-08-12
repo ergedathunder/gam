@@ -277,7 +277,7 @@ void Test_writeshared() {
   Read_val(wh[1], addr2, &val2); 
   printf ("after val2 : %d\n", val2); 
   return;
-*/
+*/ 
    
   // Start iteration
   int Iteration = 1;

@@ -32,6 +32,11 @@ using namespace std;
 /* add xmx add */
 #define SUB_BLOCK
 /* add xmx add */
+
+/* add dynamic add */
+#define DYNAMIC
+/* add dynamic add */
+
 //#define USE_PIPE_W_TO_H
 //#define USE_PIPE_H_TO_W
 #define USE_BOOST_QUEUE

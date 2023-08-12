@@ -192,7 +192,7 @@ class Directory {
   }
 
   void CreateEntry (void* ptr, DataState Cur_state=DataState::MSI, GAddr Owner=1) {
-    ptr_t block = TOBLOCK(ptr);
+    ptr_t block = (ptr_t)ptr;
     DirEntry* entry = GetEntry(ptr);
     if (entry == nullptr) {
       entry = new DirEntry();
@@ -208,7 +208,6 @@ class Directory {
       int CurSize = (BLOCK_SIZE / Divide);
 
       entry->MySize = CurSize;
-      entry->SubSize.push_back(CurSize);
 
       ptr_t CurStart = block;
       for (int i = 0; i < Divide - 1; ++i) {
@@ -219,10 +218,10 @@ class Directory {
         CurEntry->addr = CurStart;
         CurEntry->owner = Owner;
         dir[CurStart] = CurEntry;
-        entry->SubSize.push_back(CurSize);
+        CurEntry->MySize = CurSize;
       }
     }
-    else entry->MySize = 0;
+    else entry->MySize = BLOCK_SIZE;
 #endif
   }
 
