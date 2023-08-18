@@ -69,6 +69,11 @@ int WorkRequest::Ser(char* buf, int& len) {
     case TEST_RDMA:
       len = appendInteger(buf, lop, id, wid, addr, ptr);
       break;
+#ifdef DYNAMIC
+    case CHANGE:
+      len = appendInteger(buf, lop, id, wid, addr, flag);
+      break;
+#endif
 
     /* add ergeda add */
     case PUT:
@@ -109,7 +114,11 @@ int WorkRequest::Ser(char* buf, int& len) {
 #ifdef GFUNC_SUPPORT
     {
       int gid = GetGFuncID(gfunc);
+#ifdef DYNAMIC
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, gid, arg, Version);
+#else
       len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, gid, arg);
+#endif
       if (flag & GFUNC)
         epicAssert(gid != -1);
     }
@@ -121,7 +130,11 @@ int WorkRequest::Ser(char* buf, int& len) {
 #endif
 
 #else
+#ifdef DYNAMIC
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, Version);
+#else
       len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag);
+#endif
 #ifdef SELECTIVE_CACHING
       if(flag & NOT_CACHE) {
         memcpy(buf+len, ptr, size);
@@ -134,19 +147,31 @@ int WorkRequest::Ser(char* buf, int& len) {
 #ifdef GFUNC_SUPPORT
     {
       int gid = GetGFuncID(gfunc);
+#ifdef DYNAMIC
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, gid, arg, Version);
+#else
       len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, gid, arg);
+#endif
       if (flag & GFUNC)
         epicAssert(gid != -1);
     }
 #else
+#ifdef DYNAMIC
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, Version);
+#else
       len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag);
+#endif
 #endif
       break;
     case READ:
     case FETCH_AND_SHARED:
     case FETCH_AND_INVALIDATE:
     case INVALIDATE:
+#ifdef DYNAMIC
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, Version);
+#else
       len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag);
+#endif
       break;
     case READ_FORWARD:
     case WRITE_FORWARD:
@@ -250,6 +275,11 @@ int WorkRequest::Deser(const char* buf, int& len) {
     case TEST_RDMA:
       p += readInteger (p, id, wid, addr, ptr);
       break;
+#ifdef DYNAMIC
+    case CHANGE:
+      p += readInteger(p, id, wid, addr, flag);
+      break;
+#endif
 
     /* add ergeda add */
     case PUT:
@@ -290,7 +320,11 @@ int WorkRequest::Deser(const char* buf, int& len) {
     {
 #ifdef GFUNC_SUPPORT
       int gid = 0;
+#ifdef DYNAMIC
+      p += readInteger(p, id, wid, addr, size, ptr, flag, gid, arg, Version);
+#else
       p += readInteger(p, id, wid, addr, size, ptr, flag, gid, arg);
+#endif
       gfunc = GetGFunc(gid);
       epicLog(LOG_DEBUG, "deser gid = %d, gfunc = %ld", gid, gfunc);
       if (!gfunc)
@@ -303,7 +337,11 @@ int WorkRequest::Deser(const char* buf, int& len) {
 #endif
 
 #else
+#ifdef DYNAMIC
+      p += readInteger(p, id, wid, addr, size, ptr, flag, Version);
+#else
       p += readInteger(p, id, wid, addr, size, ptr, flag);
+#endif
 #ifdef SELECTIVE_CACHING
       if(flag & NOT_CACHE) {
         ptr = const_cast<char*>(p);
@@ -316,13 +354,21 @@ int WorkRequest::Deser(const char* buf, int& len) {
     case WRITE_PERMISSION_ONLY: {
 #ifdef GFUNC_SUPPORT
       int gid = 0;
+#ifdef DYNAMIC
+      p += readInteger(p, id, wid, addr, size, ptr, flag, gid, arg, Version);
+#else
       p += readInteger(p, id, wid, addr, size, ptr, flag, gid, arg);
+#endif
       gfunc = GetGFunc(gid);
       epicLog(LOG_DEBUG, "deser gid = %d, gfunc = %ld", gid, gfunc);
       if (!gfunc)
         epicAssert(!(flag & GFUNC));
 #else
+#ifdef DYNAMIC
+      p += readInteger(p, id, wid, addr, size, ptr, flag, Version);
+#else
       p += readInteger(p, id, wid, addr, size, ptr, flag);
+#endif
 #endif
       break;
     }
@@ -330,7 +376,11 @@ int WorkRequest::Deser(const char* buf, int& len) {
     case FETCH_AND_SHARED:
     case FETCH_AND_INVALIDATE:
     case INVALIDATE:
+#ifdef DYNAMIC
+      p += readInteger(p, id, wid, addr, size, ptr, flag, Version);
+#else
       p += readInteger(p, id, wid, addr, size, ptr, flag);
+#endif
       break;
     case READ_FORWARD:
     case WRITE_FORWARD:

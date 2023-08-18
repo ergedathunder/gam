@@ -256,11 +256,12 @@ void wsread(WorkerHandle * Cur_wh, GAddr addr, int * val, int num) {
 void Test_writeshared() {
   Count = 0; 
   //GAddr addr = Malloc_addr(wh[1], sizeof(int), 0, 1);
-  GAddr addr = Malloc_addr(wh[2], 512, Write_shared, 3);
+  GAddr addr = Malloc_addr(wh[2], 512, Msi, 3);
   GAddr addr1 = addr;
   GAddr addr2 = addr + 300;
-/*
+
   int val1, val2;
+  /*
   val1 = 2;
   printf ("addr : %lld\n", addr);
   Read_val(wh[1], addr2, &val2);
@@ -276,8 +277,18 @@ void Test_writeshared() {
   Write_val(wh[2], addr2, &val2);
   Read_val(wh[1], addr2, &val2); 
   printf ("after val2 : %d\n", val2); 
+  */
+
+  /*
+  val1 = 3;
+  val2 = 4;
+  int val3 = 0;
+  Write_val(wh[0], addr2, &val1);
+  Write_val(wh[1], addr1, &val2);
+  Read_val(wh[1], addr2, &val3);
+  printf ("val3 : %d\n", val3);
   return;
-*/ 
+  */
    
   // Start iteration
   int Iteration = 1;

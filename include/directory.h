@@ -41,7 +41,13 @@ struct DirEntry {
   #ifdef SUB_BLOCK
   //std::vector <DirEntry *> SubEntry; //实际上子目录似乎只需要知道每个块大小情况即可，每个子块就会建一个目录，所以也不需要记录子目录位置。
   int MySize;
-  std::vector <int> SubSize;
+  #endif
+
+  #ifdef DYNAMIC
+  uint64 Race_time = 0; //统计写写冲突发生的次数
+  std::unordered_map <uint64, uint64> Left; //统计左半边访问的情况
+  std::unordered_map <uint64, uint64> Right;//统计右半边访问的情况
+  int MetaVersion = 0; //记录目录的版本信息
   #endif
 };
 
@@ -201,6 +207,9 @@ class Directory {
       entry->addr = block;
       entry->owner = Owner;
       dir[block] = entry;
+#ifdef DYNAMIC
+      entry->MetaVersion = 1;
+#endif
     }
 #ifdef SUB_BLOCK
     if (Cur_state == WRITE_SHARED) {
@@ -236,6 +245,45 @@ class Directory {
   void SetUnshared(DirEntry * Entry) {
     Entry->state = DIR_UNSHARED;
   }
+
+#ifdef DYNAMIC
+  void DirInit(DirEntry * Entry, DataState Curs=DataState::MSI, int CurSize = BLOCK_SIZE, int CurVersion = 1) {
+    Entry->Dstate = Curs;
+    Entry->MySize = CurSize;
+    Entry->MetaVersion = CurVersion;
+    Entry->state = DIR_UNSHARED;
+    Entry->Left.clear();
+    Entry->Right.clear();
+    Entry->Race_time = 0;
+    Entry->owner = 0;
+    Entry->shared.clear();
+  }
+
+  uint64 GetRacetime (DirEntry * entry) {
+    if (entry == nullptr) {
+      epicLog(LOG_WARNING, "no entry when asking racetime");
+      return 0;
+    }
+    return entry->Race_time;
+  }
+
+  uint64 GetRacetime(void * ptr_t) {
+    return GetRacetime(GetEntry(ptr_t));
+  }
+
+  int GetVersion (DirEntry * entry) {
+    if (entry == nullptr) {
+      epicLog (LOG_WARNING, "no entry when asking version");
+      return 0;
+    }
+    return entry->MetaVersion;
+  }
+  
+  int GetVersion (void * ptr_t) {
+    return GetVersion(GetEntry(ptr_t));
+  }
+#endif
+
   /* add ergeda add */
 
   DirEntry* ToShared(void* ptr, GAddr addr);
@@ -320,11 +368,6 @@ class Directory {
   list<GAddr>& GetSList(DirEntry* entry) {
     return entry->shared;
   }
-#ifdef SUB_BLOCK
-  vector<int>& GetSubSize(DirEntry * entry) {
-    return entry->SubSize;
-  }
-#endif
 
   //below are used for multithread programming
   inline void lock(void* ptr) {

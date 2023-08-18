@@ -186,6 +186,25 @@ void Worker::ProcessPendingWrite(Client* cli, WorkRequest* wr) {
 #ifdef SELECTIVE_CACHING
   wr->addr = TOBLOCK(wr->addr);
 #endif
+#ifdef DYNAMIC
+      //感觉可以在这里加东西
+      //做完这个操作直接进入ChangeDir操作
+      //通过wr->flag进行判断
+      //invalidate和fetch_and_invalidate
+  if (wr->flag & CheckChange) {
+    wr->lock();
+    if ( (--wr->counter) == 0) { //所有副本节点都已经invalidate成功
+      MyAssert(IsLocal(wr->addr));
+      wr->unlock();
+      ChangeDir(wr->addr, GetDataState(wr->flag) );
+      delete wr; //有待商榷
+      wr = nullptr;
+      return;
+    }
+    wr->unlock();
+    return;
+  }
+#endif
   epicAssert(
       (wr->op == WRITE || wr->op == WRITE_PERMISSION_ONLY)
           xor IsLocal(wr->addr));
@@ -325,7 +344,6 @@ void Worker::ProcessPendingWrite(Client* cli, WorkRequest* wr) {
 #ifdef SELECTIVE_CACHING
     if(!(wr->flag & NOT_CACHE)) {
 #endif
-
     if (!(wr->flag & LOCKED)) {
       //epicLog(LOG_WARNING, "copy done");
       GAddr pend = GADD(parent->addr, parent->size);
@@ -504,10 +522,25 @@ void Worker::ProcessPendingWriteForward(Client* cli, WorkRequest* wr) {
   directory.lock(laddr);
   logOwner(lcli->GetWorkerId(), wr->addr);
   directory.ToDirty(laddr, lcli->ToGlobal(parent->ptr));
+#ifdef DYNAMIC
+  //do nothing
+#else
   directory.unlock(laddr);
+#endif
 
   //TOOD: add completion check
   lcli->WriteWithImm(nullptr, nullptr, 0, wr->pid);  //ack the ownership change
+#ifdef DYNAMIC
+  if (directory.GetRacetime(laddr) >= 100) {
+    //TODO: 这里可以限制子块分裂次数，通过检查metaversion
+    StartChange(wr->addr, DataState::WRITE_SHARED);
+    int ret = ErasePendingWork(wr->id);
+    delete wr; //有待商榷，这里是否不能执行processtoserverequest
+    wr = nullptr;
+    return;
+  }
+  else directory.unlock(laddr);
+#endif;
 
 #ifdef SELECTIVE_CACHING
 }
@@ -757,6 +790,12 @@ void Worker::ProcessPendingRequest(Client* cli, WorkRequest* wr) {
       ProcessPendingWeInv (cli, wr);
       break;
     }
+#ifdef DYNAMIC
+    case CHANGE: {
+      ProcessPendingChange (cli, wr);
+      break;
+    }
+#endif
     /* add ergeda add */
     default:
       epicLog(LOG_WARNING, "unrecognized work request %d", wr->op);

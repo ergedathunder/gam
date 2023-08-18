@@ -489,6 +489,9 @@ int Cache::ReadWrite(WorkRequest* wr) {
             lwr->addr = i;
             lwr->size = CurSize; //different
             lwr->ptr = cline->line;
+#ifdef DYNAMIC
+            lwr->Version = Entry->MetaVersion;
+#endif
             if (wr->flag & ASYNC) {
               if (!wr->IsACopy()) {
                 wr->unlock();
@@ -542,6 +545,9 @@ int Cache::ReadWrite(WorkRequest* wr) {
           }
         }
         lwr->parent = wr;
+#ifdef DYNAMIC
+        lwr->Version = Entry->MetaVersion;
+#endif
         wr->counter++;
         //to intermediate state
         if (READ == wr->op) {

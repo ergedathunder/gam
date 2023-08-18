@@ -330,6 +330,21 @@ class Worker : public Server {
   void ProcessRemoteSubWriteCache(Client* client, WorkRequest* wr);
   void ProcessRemoteSubWriteReply(Client* client, WorkRequest* wr);
 #endif
+
+#ifdef DYNAMIC
+  int RevGetstate (DataState Curs) {
+    if (Curs == DataState::WRITE_SHARED) return Write_shared;
+    else if (Curs == DataState::ACCESS_EXCLUSIVE) return Access_exclusive;
+    else if (Curs == DataState::MSI) return Msi;
+    else if (Curs == DataState::READ_MOSTLY) return Read_mostly;
+    else if (Curs == DataState::READ_ONLY) return Read_only;
+    else if (Curs == DataState::WRITE_EXCLUSIVE) return Write_exclusive;
+  }
+  void ChangeDir (GAddr addr, DataState CurState);
+  void ProcessRemoteChange(Client * client, WorkRequest * wr);
+  void ProcessPendingChange(Client * client, WorkRequest * wr);
+  void StartChange(GAddr addr, DataState CurState);
+#endif
   /* add xmx add */
 
 #ifdef DHT

@@ -43,7 +43,7 @@ using namespace std;
 //#define USE_BUF_ONLY
 #define MULTITHREAD
 #define USE_CITYHASH
-//#define USE_MURMURHASH
+//#define USE_MURMURHASH 
 
 #define MERGE_RDMA_REQUESTS
 //#define USE_PTHREAD_COND

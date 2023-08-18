@@ -61,6 +61,9 @@ enum Work {
   WE_READ, //write exclusive read
   WE_WRITE, //write exclusive write(!owner_node)
   WE_INV, //write_exclusive invalidate
+#ifdef DYNAMIC
+  CHANGE,
+#endif
   /* add ergeda add */
 #ifdef DHT
   GET_HTABLE,
@@ -135,6 +138,9 @@ typedef int Flag;
 #define Write_exclusive (1 << 19)
 #define Write_shared (1 << 20)
 #define Add_list (1 << 21) //表示是第一次访问，需要加入shared_list(read_mostly)
+#ifdef DYNAMIC
+#define CheckChange (1 << 22) //检查当前指令是否为目录转换专用
+#endif
 /* add ergeda add */
 
 #define MASK_ID 1
@@ -190,6 +196,9 @@ struct WorkRequest {
   LockWrapper lock_;
 
   bool is_cache_hit_ = true;
+#ifdef DYNAMIC
+  int Version = 1;
+#endif
 
 #ifdef GFUNC_SUPPORT
   GFunc* gfunc = nullptr;
@@ -279,6 +288,10 @@ struct WorkRequest {
 #ifdef GFUNC_SUPPORT
     gfunc = nullptr;
     arg = 0;
+#endif
+
+#ifdef DYNAMIC
+    Version = 0;
 #endif
 
     is_cache_hit_ = true;

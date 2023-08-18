@@ -627,3 +627,156 @@ void Worker::ProcessRemoteSubWriteCache(Client* client, WorkRequest* wr) {
   cache.unlock(to_lock);
 }
 #endif
+
+#ifdef DYNAMIC
+void Worker::StartChange(GAddr addr, DataState CurState) {
+  //epicLog(LOG_WARNING, "start change subblock");
+  void * laddr = ToLocal(addr);
+  //directory.lock(laddr); //在pending request里就锁住，保证原子性
+  DirEntry * Entry = directory.GetEntry(laddr);
+  DirState state = directory.GetState(Entry);
+  list<GAddr>& shared = directory.GetSList(Entry);
+  MyAssert(state == DIR_DIRTY || state == DIR_SHARED);
+  if (state == DIR_UNSHARED) {
+    ChangeDir(addr, CurState);
+    return;
+  }
+
+  WorkRequest* lwr = new WorkRequest();
+  lwr->flag = CheckChange;
+  lwr->flag |= (RevGetstate(CurState) ); //将要转化为什么类型的子块
+  lwr->counter = 0;
+  lwr->op = state == DIR_DIRTY ? FETCH_AND_INVALIDATE : INVALIDATE;
+  lwr->addr = addr;
+  lwr->size = Entry->MySize;
+  lwr->ptr = laddr;
+  lwr->id = GetWorkPsn();
+  lwr->counter = shared.size();
+
+  directory.ToToUnShared(Entry);
+
+  AddToPending(lwr->id, lwr);
+  for (auto it = shared.begin(); it != shared.end(); it++) {
+    Client* cli = GetClient(*it);
+    SubmitRequest(cli, lwr);
+  }
+  directory.unlock(laddr);
+}
+
+void Worker::ChangeDir(GAddr addr, DataState CurState) {
+  //epicLog(LOG_WARNING, "start changedir");
+  MyAssert(IsLocal(addr));
+  void * laddr = ToLocal(addr);
+
+  directory.lock(laddr);
+  DirEntry * Entry = directory.GetEntry(laddr);
+  MyAssert(Entry != nullptr);
+
+  if (CurState == WRITE_SHARED) {
+    int PreSize = Entry->MySize;
+    int AfterSize = PreSize / 2;
+    int CurMetaVersion = Entry->MetaVersion + 1;
+
+    directory.lock(laddr + AfterSize);
+    directory.CreateEntry(laddr + AfterSize, MSI, 0);
+    DirEntry * Next = directory.GetEntry(laddr + AfterSize);
+    directory.DirInit(Next, CurState, AfterSize, CurMetaVersion);
+    directory.DirInit(Entry, CurState, AfterSize, CurMetaVersion);
+
+    directory.ToToUnShared(Next);
+    directory.ToToUnShared(Entry); //md 罪魁祸首，调一天
+  }
+
+  WorkRequest * wr = new WorkRequest();
+  
+  wr->lock();
+
+  wr->addr = addr;
+  wr->op = CHANGE;
+  wr->id = GetWorkPsn();
+  wr->flag = RevGetstate(CurState);
+  wr->counter = (int)widCliMapWorker.size();
+  
+  bool first = true;
+  for (auto& entry: widCliMapWorker) {
+    if (entry.first != this->GetWorkerId()) {
+      if (first == true) {
+        first = false;
+        AddToPending(wr->id, wr);
+      }
+      this->SubmitRequest(entry.second, wr);
+    }
+    else wr->counter -= 1;
+  }
+
+  if (CurState == WRITE_SHARED) {
+    directory.unlock(laddr + Entry->MySize);
+  }
+
+  wr->unlock();
+  directory.unlock(laddr);
+}
+
+void Worker::ProcessRemoteChange(Client * client, WorkRequest * wr) {
+  DataState Curs = GetDataState(wr->flag);
+  void * laddr = (void *)(wr->addr);
+  if (Curs == WRITE_SHARED) {
+    directory.lock(laddr);
+    DirEntry * Entry = directory.GetEntry(laddr);
+    if (Entry == nullptr) { //本地无副本，可以直接回复确认改变完毕
+      client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+      directory.unlock(laddr);
+      delete wr;
+      wr = nullptr;
+      return;
+    }
+    if (directory.InTransitionState(Entry) ) { // 进入这个判断就可能是已经死锁了,但死锁不影响
+      epicLog(LOG_WARNING, "node's directory intransition");
+      // AddToServeRemoteRequest(wr->addr, client, wr);
+      // directory.unlock(laddr);
+      // return;
+    }
+
+    int PreSize = Entry->MySize;
+    int AfterSize = PreSize / 2;
+    int CurVersion = Entry->MetaVersion + 1;
+
+    directory.lock(laddr + AfterSize);
+    directory.CreateEntry( laddr + AfterSize, DataState::MSI, 0);
+    DirEntry * Next = directory.GetEntry(laddr + AfterSize);
+    directory.DirInit(Next, Curs, AfterSize, CurVersion);
+    directory.DirInit(Entry, Curs, AfterSize, CurVersion);
+
+    client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+
+    directory.unlock(laddr + AfterSize);
+    directory.unlock(laddr);
+  }
+}
+
+void Worker::ProcessPendingChange(Client * client, WorkRequest * wr) {
+  wr->lock();
+
+  if ( (--wr->counter) == 0) {
+    void * laddr = ToLocal(wr->addr);
+    directory.lock(laddr);
+    DirEntry * Entry = directory.GetEntry(laddr);
+    directory.lock(laddr + Entry->MySize);
+    DirEntry * Next = directory.GetEntry(laddr + Entry->MySize);
+    Next->state = DIR_UNSHARED;
+    directory.unlock(laddr + Entry->MySize);
+    Entry->state = DIR_UNSHARED;
+    int CurSize = Entry->MySize;
+    directory.unlock(laddr);
+
+    wr->unlock();
+    ProcessToServeRequest(wr);
+    wr->addr += CurSize;
+    ProcessToServeRequest(wr);
+    delete wr;
+    wr = nullptr;
+    return ;
+  }
+  wr->unlock();
+}
+#endif

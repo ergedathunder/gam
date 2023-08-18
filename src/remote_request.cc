@@ -540,6 +540,13 @@ void Worker::ProcessRequest(Client* client, WorkRequest* wr) {
         ProcessRemoteWeInv(client, wr);
         break;
       }
+#ifdef DYNAMIC
+    case CHANGE:
+      {
+        ProcessRemoteChange(client, wr);
+        break;
+      }
+#endif
     /*  add ergeda add */
 #ifdef NOCACHE
     case RLOCK:

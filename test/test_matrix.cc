@@ -22,7 +22,7 @@ Worker *worker[10];
 Master *master;
 int num_worker = 0;
 int num_threads = 4;
-int iteration_times=1;   
+int iteration_times=1;
 
 void Create_master()
 {
@@ -121,7 +121,7 @@ static void matMultCPU_serial(WorkerHandle *, GAddr , GAddr, GAddr , int , int, 
 void genMat(GAddr , int );
 Error accuracyCheck(const float* , const float* , int );
 
-uint64 Transfer[100], Racetime[100], Requesttime[100];
+uint64 Transfer[100], Racetime[100], Requesttime[100]; 
 
 void Answer_check(int n, GAddr c) {
     int Round = 5;
@@ -132,11 +132,11 @@ void Answer_check(int n, GAddr c) {
         x = Curx, y = Cury + i;
         printf ("x : %d, y : %d\n", x, y);
         float val;
-        Read_val(wh[0], c + (x * n + y) * sizeof(float), &val, sizeof(float));
+        Read_val(wh[0], c + (x * n + y) * sizeof(float), &val, sizeof(float)); 
         printf (" c[%d][%d] = %.3f\n", x, y, val); 
     }
 
-    FILE* fp = fopen ("result_ws2.txt", "w"); 
+    FILE* fp = fopen ("result_ws2.txt", "w");  
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             float val;
@@ -145,7 +145,7 @@ void Answer_check(int n, GAddr c) {
         } fprintf (fp, "\n");
     }
     fclose(fp);
-}
+}  
 
 int main(int argc, char** argv)
 {
@@ -155,10 +155,10 @@ int main(int argc, char** argv)
 	// Init matrix
     GAddr a, b, c, d;
 	int n = 256; 
-	if (argc == 2) n = atoi(argv[1]); 
+	if (argc == 2) n = atoi(argv[1]);
     a = Malloc_addr(wh[0], sizeof(float) * n * n, 0, 0);
 	b = Malloc_addr(wh[1], sizeof(float) * n * n, 0, 0); 
-    c = Malloc_addr(wh[2], sizeof(float) * n * n, Write_shared, 0);  
+    c = Malloc_addr(wh[2], sizeof(float) * n * n, Msi, 0);  
  
 	genMat(a, n);
 	genMat(b, n);
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
         Total_racetime += Racetime[i];
         Total_requesttime += Requesttime[i];  
     }
-    printf ("Total transfer : %llu\n", Total_transfer);
+    printf ("Total transfer : %llu\n", Total_transfer); 
     printf ("Total racetime : %llu\n", Total_racetime);
     printf ("Total requesttime : %llu\n", Total_requesttime);
     sleep(3);
