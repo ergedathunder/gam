@@ -784,7 +784,7 @@ void Worker::ProcessRemoteWriteReply(Client* client, WorkRequest* wr) {
     pwr->lock();
 #ifdef DYNAMIC
     if (wr->status == 5732) { //版本不一致导致的失败问题,重新执行pwr
-      epicLog(LOG_WARNING, "got deadlock here");
+      //epicLog(LOG_WARNING, "got deadlock here");
       CacheLine * cline = cache.GetCLine(addr);
       MyAssert(cline->state == CACHE_TO_DIRTY || cline->state == CACHE_TO_SHARED);
       if (cline != nullptr) cache.ToInvalid(cline);

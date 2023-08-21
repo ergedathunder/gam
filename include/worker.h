@@ -311,6 +311,9 @@ class Worker : public Server {
     if (flag & Write_shared) return DataState::WRITE_SHARED;
     if (flag & Read_only) return DataState::READ_ONLY;
     if (flag & Read_mostly) return DataState::READ_MOSTLY;
+#ifdef B_I
+    if (flag & b_i) return DataState::BI;
+#endif
     return DataState::MSI;
   }
   
@@ -344,6 +347,16 @@ class Worker : public Server {
   void ProcessRemoteChange(Client * client, WorkRequest * wr);
   void ProcessPendingChange(Client * client, WorkRequest * wr);
   void StartChange(GAddr addr, DataState CurState);
+#endif
+
+#ifdef B_I
+  void ProcessRemoteBIWrite(Client * client, WorkRequest * wr);
+  void ProcessRemoteBIRead(Client * client, WorkRequest * wr);
+  void ProcessRemoteBIInv(Client * client, WorkRequest * wr);
+  void ProcessRemoteBIInform(Client * client, WorkRequest * wr);
+  void ProcessPendingBIRead(Client * client, WorkRequest * wr);
+  void ProcessPendingBIWrite(Client * client, WorkRequest * wr);
+  void UpdateVersion(DirEntry * Entry, GAddr addr);
 #endif
   /* add xmx add */
 

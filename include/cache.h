@@ -62,6 +62,9 @@ struct CacheLine {
 #ifdef SUB_BLOCK
   int CacheSize = 0;
 #endif
+#ifdef B_I
+  uint64 Timestamp;
+#endif
 };
 
 class Cache {
@@ -176,6 +179,7 @@ class Cache {
 
   CacheLine *SetSubline (GAddr addr, int CurSize);
 #endif
+
   /* add xmx add */
   atomic<long> to_evicted;
   Cache(Worker* w);

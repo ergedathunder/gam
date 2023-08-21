@@ -30,12 +30,18 @@ using namespace std;
 #define GFUNC_SUPPORT
 
 /* add xmx add */
-#define SUB_BLOCK
+//#define SUB_BLOCK
 /* add xmx add */
 
 /* add dynamic add */
-#define DYNAMIC
+//#define DYNAMIC
 /* add dynamic add */
+
+/* add B_I add */
+#define B_I
+#define Max_version 6
+#define Max_timediff 1000
+/* add B_I add */
 
 //#define USE_PIPE_W_TO_H
 //#define USE_PIPE_H_TO_W
@@ -131,6 +137,9 @@ enum DataState {
   ACCESS_EXCLUSIVE,
   WRITE_EXCLUSIVE,
   WRITE_SHARED
+#ifdef B_I
+  ,BI
+#endif
 };
 
 /* add ergeda add */

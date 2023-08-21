@@ -50,6 +50,9 @@ int WorkRequest::Ser(char* buf, int& len) {
     case READ_TYPE:
       len = appendInteger(buf, lop, id, wid, addr);
       break;
+#ifdef B_I
+    case BI_WRITE:
+#endif
     case JUST_WRITE:
     case TYPE_REPLY:
     case WE_WRITE:
@@ -256,6 +259,9 @@ int WorkRequest::Deser(const char* buf, int& len) {
     case READ_TYPE:
       p += readInteger(p, id, wid, addr);
       break;
+#ifdef B_I
+    case BI_WRITE:
+#endif
     case JUST_WRITE:
     case TYPE_REPLY:
     case WE_WRITE:

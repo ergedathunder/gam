@@ -780,3 +780,147 @@ void Worker::ProcessPendingChange(Client * client, WorkRequest * wr) {
   wr->unlock();
 }
 #endif
+
+#ifdef B_I
+void Worker::UpdateVersion(DirEntry * Entry, GAddr addr) {
+  while (!(Entry->version_list.empty()) ) {
+    auto it = Entry->version_list.begin();
+    BI_dir * Cur_Bientry = (*it);
+    if ( (Entry->version_list.size() > Max_version) || (GMINUS(get_time(), Cur_Bientry->Timestamp) > Max_timediff) ) {
+      for (auto it = Cur_Bientry->shared.begin(); it != Cur_Bientry->shared.end(); ++it) {
+        WorkRequest * lwr = new WorkRequest();
+        lwr->addr = TOBLOCK(addr);
+        lwr->op = BI_INV;
+        lwr->arg = Cur_Bientry->Timestamp;
+        Client* cli = GetClient(*it);
+        SubmitRequest(cli, lwr); //通知Invalidate过期的副本（像拥有这个副本的节点）
+        delete lwr;
+        lwr = nullptr;
+      }
+      directory.Delete_BIdirbegin(Entry);
+      continue;
+    }
+    break;
+  }
+}
+void Worker::ProcessRemoteBIWrite(Client * client, WorkRequest * wr) {
+  void * Startcopy = ToLocal(wr->addr); //写开始的位置
+  void * laddr = ToLocal(TOBLOCK(wr->addr)); //TODO： 在wr中用另外的变量存储目录位置，以兼容subblock
+  directory.lock(laddr);
+  DirEntry * Entry = directory.GetEntry(laddr);
+  memcpy (Startcopy, wr->ptr, wr->size); //直接写入内存
+  BI_dir * Last_BIentry = directory.getlastbientry(Entry);
+  if (Last_BIentry->shared.empty()) { //最后一个版本（即最新版本没有人共享，就可以直接改）
+    // do nothing
+  }
+  else {
+    BI_dir * BI_entry = directory.Create_BIdir();
+    directory.Add_BIdir(Entry, BI_entry);
+  }
+
+  UpdateVersion(Entry, wr->addr);
+
+  // while (!(Entry->version_list.empty()) ) {
+  //   auto it = Entry->version_list.begin();
+  //   BI_dir * Cur_Bientry = (*it);
+  //   if ( (Entry->version_list.size() > Max_version) || (GMINUS(BI_entry->Timestamp, Cur_Bientry->Timestamp) > Max_timediff) ) {
+  //     for (auto it = BI_entry->shared.begin(); it != BI_entry->shared.end(); ++it) {
+  //       WorkRequest * lwr = new WorkRequest();
+  //       lwr->addr = TOBLOCK(wr->addr);
+  //       lwr->op = BI_INV;
+  //       lwr->arg = Cur_Bientry->Timestamp;
+  //       Client* cli = GetClient(*it);
+  //       SubmitRequest(cli, lwr); //通知Invalidate过期的副本（像拥有这个副本的节点）
+  //       delete lwr;
+  //       lwr = nullptr;
+  //     }
+  //     directory.Delete_BIdirbegin(Entry);
+  //     continue;
+  //   }
+  //   break;
+  // }
+  client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+  directory.unlock(laddr);
+}
+
+void Worker::ProcessRemoteBIInv(Client * client, WorkRequest * wr) {
+  uint64 Cur_timestamp = wr->arg;
+  cache.lock(wr->addr);
+  CacheLine * cline = cache.GetCLine(wr->addr);
+  if (cline == nullptr) {
+    epicLog(LOG_WARNING, "no cache exist, not usual");
+    delete wr;
+    wr = nullptr;
+    return;
+  }
+  if (cline->Timestamp == Cur_timestamp) {
+    cline->state = CACHE_INVALID;
+  }
+  cache.unlock(wr->addr);
+}
+
+void Worker::ProcessRemoteBIRead(Client * client, WorkRequest * wr) {
+  void * laddr = ToLocal(wr->addr);
+  directory.lock(laddr);
+  client->WriteWithImm(wr->ptr, laddr, wr->size, wr->id);
+  wr->op = BI_INFORM;
+  DirEntry * Entry = directory.GetEntry(laddr);
+  BI_dir * BI_Entry = directory.getlastbientry(Entry);
+  BI_Entry->shared.push_back(client->ToGlobal(wr->ptr));
+  wr->arg = BI_Entry->Timestamp; //版本信息
+  SubmitRequest(client, wr);
+  directory.unlock(laddr);
+}
+
+void Worker::ProcessRemoteBIInform(Client * client, WorkRequest * wr) {
+  cache.lock(wr->addr);
+  CacheLine * cline = cache.GetCLine(wr->addr);
+  if (cline != nullptr) {
+    cline->Timestamp = wr->arg;
+  }
+  cache.unlock(wr->addr);
+}
+
+void Worker::ProcessPendingBIRead(Client * client, WorkRequest * wr) {
+  WorkRequest* parent = wr->parent;
+  parent->lock();
+
+  cache.lock(wr->addr);
+  GAddr pend = GADD(parent->addr, parent->size);
+  GAddr end = GADD(wr->addr, wr->size);
+  GAddr gs = wr->addr > parent->addr ? wr->addr : parent->addr;
+  void* ls = (void*) ((ptr_t) parent->ptr + GMINUS(gs, parent->addr));
+  void* cs = (void*) ((ptr_t) wr->ptr + GMINUS(gs, wr->addr));
+  Size len = end > pend ? GMINUS(pend, gs) : GMINUS(end, gs);
+  memcpy(ls, cs, len);
+  cache.unlock(wr->addr);
+
+  if ( (--parent->counter) == 0) {  //read all the data
+    parent->status = SUCCESS;
+    parent->unlock();
+    Notify(parent);
+  } else {
+    parent->unlock();
+  }
+
+  int ret = ErasePendingWork(wr->id);
+  delete wr;
+  wr = nullptr;
+}
+
+void Worker::ProcessPendingBIWrite(Client * client, WorkRequest * wr) {
+  WorkRequest* parent = wr->parent;
+  parent->lock();
+  if ( (--parent->counter) == 0) {  //read all the data
+    parent->status = SUCCESS;
+    parent->unlock();
+    Notify(parent);
+  } else {
+    parent->unlock();
+  }
+
+  int ret = ErasePendingWork(wr->id);
+  delete wr;
+  wr = nullptr;
+}
+#endif

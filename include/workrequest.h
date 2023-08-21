@@ -64,6 +64,13 @@ enum Work {
 #ifdef DYNAMIC
   CHANGE,
 #endif
+
+#ifdef B_I
+  BI_READ,
+  BI_WRITE,
+  BI_INV,
+  BI_INFORM, // 通知版本
+#endif
   /* add ergeda add */
 #ifdef DHT
   GET_HTABLE,
@@ -140,6 +147,10 @@ typedef int Flag;
 #define Add_list (1 << 21) //表示是第一次访问，需要加入shared_list(read_mostly)
 #ifdef DYNAMIC
 #define CheckChange (1 << 22) //检查当前指令是否为目录转换专用
+#endif
+
+#ifdef B_I
+#define b_i (1 << 23)
 #endif
 /* add ergeda add */
 

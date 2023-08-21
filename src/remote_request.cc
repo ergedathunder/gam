@@ -547,6 +547,29 @@ void Worker::ProcessRequest(Client* client, WorkRequest* wr) {
         break;
       }
 #endif
+
+#ifdef B_I
+    case BI_WRITE:
+      {
+        ProcessRemoteBIWrite(client, wr);
+        break;
+      }
+    case BI_READ:
+      {
+        ProcessRemoteBIRead(client, wr);
+        break;
+      }
+    case BI_INFORM:
+      {
+        ProcessRemoteBIInform(client, wr);
+        break;
+      }
+    case BI_INV:
+      {
+        ProcessRemoteBIInv(client, wr);
+        break;
+      }
+#endif
     /*  add ergeda add */
 #ifdef NOCACHE
     case RLOCK:

@@ -565,6 +565,80 @@ int Cache::ReadWrite(WorkRequest* wr) {
       continue;
     }
 #endif
+
+#ifdef B_I
+    else if (Cur_Dstate == DataState::BI) {
+
+      worker->directory.unlock((void*)i);
+
+      GAddr gs = i > start ? i : start;
+      epicAssert(GMINUS(nextb, gs) > 0);
+      void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+      int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
+
+      if (WRITE == wr->op) {
+        WorkRequest* lwr = new WorkRequest(*wr);
+        if (wr->flag & ASYNC) {
+          if (!wr->IsACopy()) {
+            wr->unlock();
+            wr = wr->Copy();
+            wr->lock();
+          }
+        } 
+        wr->is_cache_hit_ = false;
+        wr->counter++;
+
+        char buf[BLOCK_SIZE];
+        
+        memcpy(buf, ls, len);
+
+        lwr->parent = wr;
+        lwr->counter = 0;
+        lwr->op = BI_WRITE;
+        lwr->addr = gs;
+        lwr->ptr = buf;
+        lwr->size = len;
+
+        worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
+        
+        i = nextb;
+        continue;
+      }
+
+      lock(i);
+      CacheLine * cline = nullptr;
+      cline = GetCLine(i);
+      CacheState Curs = CACHE_INVALID;
+      if (cline) Curs = cline->state;
+      //below are read option
+      if (Curs != CACHE_INVALID) {
+        void* cs = (void*) ((ptr_t) cline->line + GMINUS(gs, i));
+        MyAssert(wr->op == READ);
+        // 这里是否需要添加辅助判断：若过期时间过长，则也将其无效。
+        memcpy(ls, cs, len);
+      }
+      else { //no cache
+        cline = SetCLine(i);
+        WorkRequest* lwr = new WorkRequest(*wr);
+        wr->is_cache_hit_ = false;
+        wr->counter++;
+        lwr->parent = wr;
+        lwr->counter = 0;
+        lwr->op = BI_READ;
+        lwr->addr = i;
+        lwr->ptr = cline->line;
+#ifdef SUB_BLOCK
+        lwr->size = Entry->MySize;
+#else
+        lwr->size = BLOCK_SIZE;
+#endif
+        worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
+      }
+      unlock(i);
+      i = nextb;
+      continue;
+    }
+#endif
     /* add xmx add */
     /* add ergeda add */
     lock(i);

@@ -21,7 +21,7 @@ ibv_device **curlist;
 Worker *worker[10];  
 Master *master;
 int num_worker = 0;
-int num_threads = 4;
+int num_threads = 8;
 int iteration_times=1;
 
 void Create_master()
@@ -104,7 +104,7 @@ GAddr Malloc_addr(WorkerHandle *Cur_wh, const Size size, Flag flag, int Owner)
 void Init_Gam() {
     curlist = ibv_get_device_list(NULL);
     Create_master();
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 8; ++i)
     {
         Create_worker();
     }
@@ -133,7 +133,7 @@ void Answer_check(int n, GAddr c) {
         printf ("x : %d, y : %d\n", x, y);
         float val;
         Read_val(wh[0], c + (x * n + y) * sizeof(float), &val, sizeof(float)); 
-        printf (" c[%d][%d] = %.3f\n", x, y, val); 
+        printf (" c[%d][%d] = %.3f\n", x, y, val);  
     }
 
     FILE* fp = fopen ("result_ws2.txt", "w");  
@@ -144,7 +144,7 @@ void Answer_check(int n, GAddr c) {
             fprintf (fp, "%lf ", val);
         } fprintf (fp, "\n");
     }
-    fclose(fp);
+    fclose(fp);   
 }  
 
 int main(int argc, char** argv)
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
     thread threads[num_threads]; 
     for (int Round = 0; Round < iteration_times; ++Round) { 
         int apartx = 2; 
-        int aparty = 2;
+        int aparty = 4;
         for (int i = 0; i < apartx; ++i) {
             int Cur_Startx = i * (n / apartx);
             int Cur_Endx = Cur_Startx + (n / apartx);

@@ -206,6 +206,17 @@ int Worker::ProcessLocalRead(WorkRequest* wr) {
           continue;
         }
 #endif
+#ifdef B_I
+        else if (Ds == BI) { //读直接读就行，一定是最新的
+          GAddr gs = i > start ? i : start;
+          void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+          int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
+          memcpy(ls, ToLocal(gs), len);
+          directory.unlock(laddr);
+          i = nextb;
+          continue;
+        }
+#endif
         else {
 
         }
@@ -553,6 +564,29 @@ int Worker::ProcessLocalWrite(WorkRequest* wr) {
               memcpy(ToLocal(gs), ls, len);
               epicLog(LOG_DEBUG, "copy dirty data in advance");
           }
+          directory.unlock(laddr);
+          i = nextb;
+          continue;
+        }
+#endif
+
+#ifdef B_I
+        else if (Ds == BI) { //write就直接写
+          
+          GAddr gs = i > start ? i : start;
+          void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+          int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
+          memcpy(ToLocal(gs), ls, len);
+
+          BI_dir * Last_BIEntry = directory.getlastbientry(entry);
+          if (!(Last_BIEntry->shared.empty()) ) { //只有最后一个版本存在其他副本读，才更新版本，否则更新time_Stamp
+            BI_dir * Cur_BIEntry = directory.Create_BIdir();
+            directory.Add_BIdir(entry, Cur_BIEntry);
+          }
+          else {
+            Last_BIEntry->Timestamp = get_time(); //或许没必要？
+          }
+
           directory.unlock(laddr);
           i = nextb;
           continue;

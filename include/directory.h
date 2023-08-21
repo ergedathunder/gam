@@ -9,6 +9,9 @@
 #include "settings.h"
 #include "hashtable.h"
 #include "map.h"
+#ifdef B_I
+#include "util.h"
+#endif
 
 enum DirState {
   DIR_UNSHARED,
@@ -24,6 +27,13 @@ enum DirState {
 大目录的起始地址和第一个子块的起始地址是一样的。
 方案1：把子块的映射向后偏移一位，写一个专门服务子块的找目录的函数
 */
+
+#ifdef B_I
+struct BI_dir{
+  uint64 Timestamp;
+  list<GAddr> shared;
+};
+#endif
 
 struct DirEntry {
   DirState state = DIR_UNSHARED;
@@ -48,6 +58,10 @@ struct DirEntry {
   std::unordered_map <uint64, uint64> Left; //统计左半边访问的情况
   std::unordered_map <uint64, uint64> Right;//统计右半边访问的情况
   int MetaVersion = 0; //记录目录的版本信息
+  #endif
+
+  #ifdef B_I
+  list<BI_dir *> version_list; // 版本链条
   #endif
 };
 
@@ -281,6 +295,36 @@ class Directory {
   
   int GetVersion (void * ptr_t) {
     return GetVersion(GetEntry(ptr_t));
+  }
+#endif
+
+#ifdef B_I
+  BI_dir * Create_BIdir () {
+    BI_dir * BI_entry = new BI_dir();
+    BI_entry->Timestamp = get_time();
+    return BI_entry;
+  }
+
+  void Add_BIdir (DirEntry * Entry, BI_dir * BI_entry) {
+    Entry->version_list.push_back(BI_entry);
+  }
+
+  void Delete_BIdirbegin (DirEntry * Entry) {
+    auto it = Entry->version_list.begin();
+    BI_dir * BI_entry = (*it);
+    Entry->version_list.erase(it);
+    BI_entry->shared.clear();
+    delete BI_entry;
+    BI_entry = nullptr;
+  }
+
+  BI_dir * getlastbientry(DirEntry * Entry) {
+    return Entry->version_list.back();
+  }
+
+  uint64 getlastversion(DirEntry * Entry) {
+    if (Entry->version_list.empty()) return 0;
+    return (Entry->version_list.back())->Timestamp;
   }
 #endif
 
