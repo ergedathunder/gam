@@ -39,9 +39,13 @@ using namespace std;
 
 /* add B_I add */
 #define B_I
-#define Max_version 6
-#define Max_timediff 1000
+#define Max_version 10
+#define Max_timediff 50000000
 /* add B_I add */
+
+/* add debug add */
+//#define XEG_DEBUG
+/* add debug add */
 
 //#define USE_PIPE_W_TO_H
 //#define USE_PIPE_H_TO_W

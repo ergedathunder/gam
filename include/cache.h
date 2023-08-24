@@ -63,7 +63,7 @@ struct CacheLine {
   int CacheSize = 0;
 #endif
 #ifdef B_I
-  uint64 Timestamp;
+  uint64 Timestamp = 0;
 #endif
 };
 

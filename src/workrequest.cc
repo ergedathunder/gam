@@ -78,6 +78,14 @@ int WorkRequest::Ser(char* buf, int& len) {
       break;
 #endif
 
+#ifdef B_I
+    case BI_READ:
+    case BI_INV:
+    case BI_INFORM:
+      len = appendInteger(buf, lop, id, wid, addr, size, ptr, flag, arg);
+      break;
+#endif
+
     /* add ergeda add */
     case PUT:
     case GET_REPLY:
@@ -284,6 +292,13 @@ int WorkRequest::Deser(const char* buf, int& len) {
 #ifdef DYNAMIC
     case CHANGE:
       p += readInteger(p, id, wid, addr, flag);
+      break;
+#endif
+#ifdef B_I
+    case BI_READ:
+    case BI_INV:
+    case BI_INFORM:
+      p += readInteger(p, id, wid, addr, size, ptr, flag, arg);
       break;
 #endif
 

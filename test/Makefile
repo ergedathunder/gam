@@ -59,5 +59,8 @@ test_matrix: test_matrix.cc
 test_gauss: test_gauss.cc
 	$(CPP) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIBS)
 
+bi: bi.cc
+	$(CPP) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIBS)
+
 clean:
-	rm -rf example example-r worker master slab_test rw_test lock_test lru_test fence_test benchmark hashtable_test hashtable_throw_test garray_test cs_test gfunc_test test
+	rm -rf bi example example-r worker master slab_test rw_test lock_test lru_test fence_test benchmark hashtable_test hashtable_throw_test garray_test cs_test gfunc_test test

@@ -10,6 +10,7 @@
 #include <map>
 #include <vector>
 #include <omp.h>
+#include <algorithm>
 using namespace std;
 
 struct Node
@@ -95,6 +96,17 @@ bool readFile(char* filename) {
 	}
 	fclose(fid);
 	return true;
+}
+
+const int Maxn = 1000010;
+
+struct Sort{
+	int id;
+	double Value;
+}Final[Maxn];
+
+bool cmp(Sort c, Sort d) {
+	return c.Value > d.Value;
 }
 
 int main(int argc, char** argv) {
@@ -197,10 +209,15 @@ int main(int argc, char** argv) {
 	time = omp_get_wtime() - time;
 	printf("\n");
 
-	/*int min = N > 10 ? 10 : N;
+	int min = N > 10 ? 10 : N;
 	for (i = 0; i < N; i++) {
-		printf("%d, %.20f\n",nodes->at(i).index,nodes->at(i).p_t1);
-	}*/
+		//printf("%d, %.20f\n",nodes->at(i).index,nodes->at(i).p_t1);
+		Final[i+1].id = nodes->at(i).index;
+		Final[i+1].Value = nodes->at(i).p_t1;
+	}
+	sort(Final + 1, Final + N + 1, cmp);
+	for (int i = 1; i <= 10; ++i) printf ("node_id : %d, pagerank : %.10f\n", Final[i].id, Final[i].Value);
+
 	printf("\n");
 	printf("Number of iterations: %d\n", iterations);
 	printf("Elapsed time: %.10f seconds.\n", time);

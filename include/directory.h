@@ -161,6 +161,36 @@ class Directory {
   }
 #endif
 
+#ifdef B_I
+  BI_dir * Create_BIdir () {
+    BI_dir * BI_entry = new BI_dir();
+    BI_entry->Timestamp = get_time();
+    return BI_entry;
+  }
+
+  void Add_BIdir (DirEntry * Entry, BI_dir * BI_entry) {
+    Entry->version_list.push_back(BI_entry);
+  }
+
+  void Delete_BIdirbegin (DirEntry * Entry) {
+    //epicLog(LOG_WARNING, "got delete birdir");
+    auto it = Entry->version_list.begin();
+    BI_dir * BI_entry = (*it);
+    Entry->version_list.erase(it);
+    BI_entry->shared.clear();
+    delete BI_entry;
+    BI_entry = nullptr;
+  }
+
+  BI_dir * getlastbientry(DirEntry * Entry) {
+    return Entry->version_list.back();
+  }
+
+  uint64 getlastversion(DirEntry * Entry) {
+    if (Entry->version_list.empty()) return 0;
+    return (Entry->version_list.back())->Timestamp;
+  }
+#endif
   /* add ergeda add */
 
 /*  MetaEntry* GetMeta(GAddr addr) {
@@ -223,6 +253,13 @@ class Directory {
       dir[block] = entry;
 #ifdef DYNAMIC
       entry->MetaVersion = 1;
+#endif
+
+#ifdef B_I
+      if (Cur_state == DataState::BI) {
+        BI_dir * cur_bientry = Create_BIdir();
+        Add_BIdir(entry, cur_bientry); //最开始建立一个版本
+      }
 #endif
     }
 #ifdef SUB_BLOCK
@@ -295,36 +332,6 @@ class Directory {
   
   int GetVersion (void * ptr_t) {
     return GetVersion(GetEntry(ptr_t));
-  }
-#endif
-
-#ifdef B_I
-  BI_dir * Create_BIdir () {
-    BI_dir * BI_entry = new BI_dir();
-    BI_entry->Timestamp = get_time();
-    return BI_entry;
-  }
-
-  void Add_BIdir (DirEntry * Entry, BI_dir * BI_entry) {
-    Entry->version_list.push_back(BI_entry);
-  }
-
-  void Delete_BIdirbegin (DirEntry * Entry) {
-    auto it = Entry->version_list.begin();
-    BI_dir * BI_entry = (*it);
-    Entry->version_list.erase(it);
-    BI_entry->shared.clear();
-    delete BI_entry;
-    BI_entry = nullptr;
-  }
-
-  BI_dir * getlastbientry(DirEntry * Entry) {
-    return Entry->version_list.back();
-  }
-
-  uint64 getlastversion(DirEntry * Entry) {
-    if (Entry->version_list.empty()) return 0;
-    return (Entry->version_list.back())->Timestamp;
   }
 #endif
 

@@ -584,7 +584,7 @@ int Cache::ReadWrite(WorkRequest* wr) {
             wr = wr->Copy();
             wr->lock();
           }
-        } 
+        }
         wr->is_cache_hit_ = false;
         wr->counter++;
 

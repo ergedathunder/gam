@@ -117,6 +117,10 @@ int Worker::ProcessLocalMalloc(WorkRequest* wr) {
     epicAssert((uint64_t)addr % BLOCK_SIZE == 0);
   } else {
     addr = sb.sb_malloc(wr->size);
+    // add debug add
+    printf ("malloc addr : %llu\n", addr);
+    fflush(stdout);
+    // add debug add
     epicLog(LOG_DEBUG, "allocate addr at %lx", addr);
   }
   //FIXME: remove below

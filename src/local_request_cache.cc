@@ -1,7 +1,7 @@
 // Copyright (c) 2018 The GAM Authors 
 
 // #define SUB_BLOCK
-// #include "worker.h"
+//#include "worker.h"
 
 int Worker::ProcessLocalRead(WorkRequest* wr) {
   epicAssert(wr->addr);
@@ -582,6 +582,7 @@ int Worker::ProcessLocalWrite(WorkRequest* wr) {
           if (!(Last_BIEntry->shared.empty()) ) { //只有最后一个版本存在其他副本读，才更新版本，否则更新time_Stamp
             BI_dir * Cur_BIEntry = directory.Create_BIdir();
             directory.Add_BIdir(entry, Cur_BIEntry);
+            UpdateVersion(entry, i);
           }
           else {
             Last_BIEntry->Timestamp = get_time(); //或许没必要？

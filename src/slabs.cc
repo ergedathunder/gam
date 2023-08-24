@@ -41,7 +41,13 @@ unsigned int SlabAllocator::slabs_clsid(const size_t size) {
 
   if (size == 0)
     return 0;
+  //printf ("power_largest : %d\n", power_largest);
+  //fflush(stdout);
   while (size > slabclass[res].size) {
+    /* add debug add */
+    //printf ("res : %d, size : %d\n", res, slabclass[res].size);
+    //fflush(stdout);
+    /* add debug add */
     if (res++ == power_largest) /* won't fit in the biggest slab */
       return 0;
   }
@@ -377,10 +383,23 @@ void * SlabAllocator::sb_malloc(size_t size) {
   /*
    * if the slab-allocator isn't initiated, we use the default malloc()!
    */
+  //add debug add
+  //printf ("memlimit : %d\n", mem_limit);
+  //fflush(stdout);
+  //add debug add
   if (mem_limit == 0) {
+    //add debug add
+    //printf ("you are kidding me ???\n");
+    //fflush(stdout);
+    //add debug add
     dbprintf("sb_mallocator is not initiated. Use default malloc\n");
     return NULL;
   }
+
+  //add debug add
+  //printf ("got slabs_clsid\n");
+  //fflush(stdout);
+  //add debug add
 
   size_t newsize = size + SB_PREFIX_SIZE;
 

@@ -811,7 +811,7 @@ void Worker::ProcessRemoteBIWrite(Client * client, WorkRequest * wr) {
   memcpy (Startcopy, wr->ptr, wr->size); //直接写入内存
   BI_dir * Last_BIentry = directory.getlastbientry(Entry);
   if (Last_BIentry->shared.empty()) { //最后一个版本（即最新版本没有人共享，就可以直接改）
-    // do nothing
+    Last_BIentry->Timestamp = get_time();
   }
   else {
     BI_dir * BI_entry = directory.Create_BIdir();
@@ -819,28 +819,11 @@ void Worker::ProcessRemoteBIWrite(Client * client, WorkRequest * wr) {
   }
 
   UpdateVersion(Entry, wr->addr);
-
-  // while (!(Entry->version_list.empty()) ) {
-  //   auto it = Entry->version_list.begin();
-  //   BI_dir * Cur_Bientry = (*it);
-  //   if ( (Entry->version_list.size() > Max_version) || (GMINUS(BI_entry->Timestamp, Cur_Bientry->Timestamp) > Max_timediff) ) {
-  //     for (auto it = BI_entry->shared.begin(); it != BI_entry->shared.end(); ++it) {
-  //       WorkRequest * lwr = new WorkRequest();
-  //       lwr->addr = TOBLOCK(wr->addr);
-  //       lwr->op = BI_INV;
-  //       lwr->arg = Cur_Bientry->Timestamp;
-  //       Client* cli = GetClient(*it);
-  //       SubmitRequest(cli, lwr); //通知Invalidate过期的副本（像拥有这个副本的节点）
-  //       delete lwr;
-  //       lwr = nullptr;
-  //     }
-  //     directory.Delete_BIdirbegin(Entry);
-  //     continue;
-  //   }
-  //   break;
-  // }
   client->WriteWithImm(nullptr, nullptr, 0, wr->id);
   directory.unlock(laddr);
+
+  delete wr;
+  wr = nullptr;
 }
 
 void Worker::ProcessRemoteBIInv(Client * client, WorkRequest * wr) {
@@ -857,6 +840,8 @@ void Worker::ProcessRemoteBIInv(Client * client, WorkRequest * wr) {
     cline->state = CACHE_INVALID;
   }
   cache.unlock(wr->addr);
+  delete wr;
+  wr = nullptr;
 }
 
 void Worker::ProcessRemoteBIRead(Client * client, WorkRequest * wr) {
@@ -870,6 +855,8 @@ void Worker::ProcessRemoteBIRead(Client * client, WorkRequest * wr) {
   wr->arg = BI_Entry->Timestamp; //版本信息
   SubmitRequest(client, wr);
   directory.unlock(laddr);
+  delete wr;
+  wr = nullptr;
 }
 
 void Worker::ProcessRemoteBIInform(Client * client, WorkRequest * wr) {
@@ -893,6 +880,8 @@ void Worker::ProcessPendingBIRead(Client * client, WorkRequest * wr) {
   void* cs = (void*) ((ptr_t) wr->ptr + GMINUS(gs, wr->addr));
   Size len = end > pend ? GMINUS(pend, gs) : GMINUS(end, gs);
   memcpy(ls, cs, len);
+  CacheLine * cline = cache.GetCLine(wr->addr);
+  cline->state = CACHE_DIRTY;
   cache.unlock(wr->addr);
 
   if ( (--parent->counter) == 0) {  //read all the data

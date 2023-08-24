@@ -796,6 +796,17 @@ void Worker::ProcessPendingRequest(Client* cli, WorkRequest* wr) {
       break;
     }
 #endif
+
+#ifdef B_I
+    case BI_WRITE: {
+      ProcessPendingBIWrite (cli, wr);
+      break;
+    }
+    case BI_READ: {
+      ProcessPendingBIRead(cli, wr);
+      break;
+    }
+#endif
     /* add ergeda add */
     default:
       epicLog(LOG_WARNING, "unrecognized work request %d", wr->op);
