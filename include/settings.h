@@ -30,21 +30,21 @@ using namespace std;
 #define GFUNC_SUPPORT
 
 /* add xmx add */
-#define SUB_BLOCK
+// #define SUB_BLOCK
 /* add xmx add */
 
 /* add dynamic add */
-#define DYNAMIC
+// #define DYNAMIC
 /* add dynamic add */
 
 /* add B_I add */
-#define B_I
-#define Max_version 15
-#define Max_timediff 2000000000000
+// #define B_I
+// #define Max_version 15
+// #define Max_timediff 2000000000000
 /* add B_I add */
 
 /* add debug add */
-#define XEG_DEBUG
+// #define XEG_DEBUG
 /* add debug add */
 
 //#define USE_PIPE_W_TO_H

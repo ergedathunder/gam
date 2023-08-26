@@ -20,7 +20,7 @@ int ng1 = 1000, ng2 = 2000, ng3 = 1000, ng4 = 1000;
 
 void run_for_test() {
   int aa;
-  int bb;
+  // int bb;
 }
 
 int Write_buf[100010];
