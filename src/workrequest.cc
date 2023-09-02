@@ -78,6 +78,14 @@ int WorkRequest::Ser(char* buf, int& len) {
       break;
 #endif
 
+#ifdef DYNAMIC_SECOND
+    case SEND_STATS:
+      len = appendInteger(buf, lop, id, wid, addr, size, flag);
+      memcpy(buf + len, ptr, size);
+      len += size;
+      break;
+#endif
+
 #ifdef B_I
     case BI_READ:
     case BI_INV:
@@ -304,6 +312,15 @@ int WorkRequest::Deser(const char* buf, int& len) {
       p += readInteger(p, id, wid, addr, flag);
       break;
 #endif
+
+#ifdef DYNAMIC_SECOND
+    case SEND_STATS:
+      p += readInteger(p, id, wid, addr, size, flag);
+      ptr = const_cast<char*>(p);
+      len = size;
+      break;
+#endif
+
 #ifdef B_I
     case BI_READ:
     case BI_INV:

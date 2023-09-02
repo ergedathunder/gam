@@ -673,26 +673,39 @@ void Worker::ProcessPendingWriteForward(Client *cli, WorkRequest *wr)
     directory.lock(laddr);
     logOwner(lcli->GetWorkerId(), wr->addr);
     directory.ToDirty(laddr, lcli->ToGlobal(parent->ptr));
-#ifdef DYNAMIC
-  //do nothing
-#else
-  directory.unlock(laddr);
+
+#ifdef DYNAMIC_DEBUG
+//remember rewrite after debug (ifndef->ifdef)
 #endif
 
-    // TOOD: add completion check
+#ifdef DYNAMIC_SECOND
+    directory.unlock(laddr);
+#else
+  #ifdef DYNAMIC
+    //do nothing
+  #else
+    directory.unlock(laddr);
+  #endif
+#endif
+    //TOOD: add completion check
     lcli->WriteWithImm(nullptr, nullptr, 0, wr->pid); // ack the ownership change
-
-#ifdef DYNAMIC
-  if (directory.GetRacetime(laddr) >= 1 && directory.GetVersion(laddr) <= 3) {
-    //epicLog(LOG_WARNING, "really got here");
-    //TODO: 这里可以限制子块分裂次数，通过检查metaversion
-    StartChange(wr->addr, DataState::WRITE_SHARED);
-    int ret = ErasePendingWork(wr->id);
-    delete wr; //有待商榷，这里是否不能执行processtoserverequest
-    wr = nullptr;
-    return;
-  }
-  else directory.unlock(laddr);
+#ifdef DYNAMIC_SECOND
+#else
+  #ifdef DYNAMIC
+    if (directory.GetRacetime(laddr) >= 0) {// && directory.GetVersion(laddr) <= 3
+      // if (directory.GetVersion(laddr) == 2) {
+      //   printf ("Cur Racetime : %d\n", directory.GetRacetime(laddr));
+      // }
+      //epicLog(LOG_WARNING, "really got here");
+      //TODO: 这里可以限制子块分裂次数，通过检查metaversion
+      StartChange(wr->addr, DataState::WRITE_SHARED);
+      int ret = ErasePendingWork(wr->id);
+      delete wr; //有待商榷，这里是否不能执行processtoserverequest
+      wr = nullptr;
+      return;
+    }
+    else directory.unlock(laddr);
+  #endif
 #endif
 
 #ifdef SELECTIVE_CACHING

@@ -22,7 +22,7 @@ Worker *worker[10];
 Master *master;
 int num_worker = 0;
 int num_threads = 8;
-int iteration_times=1;
+int iteration_times=20;
 
 void Create_master()
 {
@@ -136,11 +136,12 @@ void Answer_check(int n, GAddr c) {
         printf (" c[%d][%d] = %.3f\n", x, y, val);  
     }
 
-    FILE* fp = fopen ("result_ws2.txt", "w");  
+    FILE* fp = fopen ("DataSet/result_Dynamic.txt", "w");  
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
+            // printf ("%d %d\n", i, j);
             float val;
-            Read_val(wh[2], c + (i * n + j) * sizeof(float), &val, sizeof(float));
+            Read_val(wh[0], c + (i * n + j) * sizeof(float), &val, sizeof(float));
             fprintf (fp, "%lf ", val);
         } fprintf (fp, "\n");
     }
@@ -158,7 +159,7 @@ int main(int argc, char** argv)
 	if (argc == 2) n = atoi(argv[1]);
     a = Malloc_addr(wh[0], sizeof(float) * n * n, 0, 0);
 	b = Malloc_addr(wh[1], sizeof(float) * n * n, 0, 0); 
-    c = Malloc_addr(wh[2], sizeof(float) * n * n, Msi, 0);  
+    c = Malloc_addr(wh[2], sizeof(float) * n * n, Msi, 0);
  
 	genMat(a, n);
 	genMat(b, n);
@@ -179,6 +180,7 @@ int main(int argc, char** argv)
 
     thread threads[num_threads]; 
     for (int Round = 0; Round < iteration_times; ++Round) { 
+        long Cur_round_start = get_time();
         int apartx = 2; 
         int aparty = 4;
         for (int i = 0; i < apartx; ++i) {
@@ -195,6 +197,8 @@ int main(int argc, char** argv)
         for (int i = 0; i < num_threads; ++i) {
             threads[i].join(); 
         }
+        long Cur_round_end = get_time();
+        printf ("Round %d running time : %lld\n", Round + 1, Cur_round_end - Cur_round_start);
     } 
 
 	////// end code  ///////
@@ -219,9 +223,9 @@ int main(int argc, char** argv)
     printf ("Total racetime : %llu\n", Total_racetime);
     printf ("Total requesttime : %llu\n", Total_requesttime);
     sleep(3);
-    //Answer_check (n, c);
     float tmp;
-    Read_val(wh[2], c, &tmp, sizeof(float));
+    Read_val(wh[2], c + (128 * n + 0) * sizeof(float), &tmp, sizeof(float));
+    Answer_check (n, c);
 
 	return 0;
 } 

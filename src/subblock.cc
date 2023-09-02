@@ -629,14 +629,253 @@ void Worker::ProcessRemoteSubWriteCache(Client* client, WorkRequest* wr) {
 #endif
 
 #ifdef DYNAMIC
-void Worker::StartChange(GAddr addr, DataState CurState) {
+
+#ifdef DYNAMIC_SECOND
+void Worker::CollectStats(DirEntry * Entry, GAddr addr, GAddr DirStart, bool flag) {
+  if (flag) { //read
+    Entry->read_time ++;
+  }
+  else { //write
+    Entry->write_time ++;
+    if ( ( (addr - DirStart) + (addr - DirStart) ) < Entry->MySize) { //左半边写
+      Entry->left_write ++;
+    }
+    else Entry->Right_write ++;
+  }
+
+#ifdef DYNAMIC_DEBUG
+  //return; //test
+#endif
+
+  if (!IsLocal(DirStart) ) {
+    if (Entry->read_time + Entry->write_time > Node_interval) { //每达到一定访问次数发一次
+//      uint64 Cur_time = get_time();
+//    if (Cur_time - Entry->running_time > Time_interval) { //每隔一段时间发一次
+      Client *cli = GetClient(DirStart);
+      char buf[20];
+      WorkRequest * lwr = new WorkRequest();
+      lwr->addr = DirStart;
+      lwr->op = SEND_STATS;
+      lwr->ptr = buf;
+      lwr->size = 0;
+      lwr->size += appendInteger(buf + lwr->size, Entry->read_time);
+      lwr->size += appendInteger(buf + lwr->size, Entry->write_time);
+      lwr->size += appendInteger(buf + lwr->size, Entry->left_write);
+      lwr->size += appendInteger(buf + lwr->size, Entry->Right_write);
+      SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
+
+      Entry->read_time = 0;
+      Entry->write_time = 0;
+      Entry->left_write = 0;
+      Entry->Right_write = 0;
+    }
+  }
+  else { // local directory
+
+  }
+}
+
+void Worker::ProcessRemoteSendStats(Client * client, WorkRequest * wr) {
+  void * laddr = ToLocal(wr->addr);
+  directory.lock(laddr);
+  DirEntry * Entry = directory.GetEntry(laddr);
+  if (directory.InTransitionState(Entry) )
+  {
+    AddToServeRemoteRequest(wr->addr, client, wr);
+    directory.unlock(laddr);
+    return;
+  } //此时directory一定处于unshared, dirty, shared其中一种
+  int from_id = (wr->wid) - 1;
+  int Cur_id = GetWorkerId() - 1;
+
+  if (from_id < 0 || Cur_id < 0) {
+    epicLog(LOG_FATAL, "xiabiao < 0 ??!!???");
+  }
+
+  int CurSize = 0;
+  uint32 CurReadtime = 0;
+  uint32 CurWritetime = 0;
+  uint32 CurLeftWrite = 0;
+  uint32 CurRightWrite = 0;
+  CurSize += readInteger((char*) wr->ptr, CurReadtime, CurWritetime, CurLeftWrite, CurRightWrite);//解析传过来的数据
+  Entry->calc_read[from_id] += CurReadtime;
+  Entry->calc_write[from_id] += CurWritetime;
+  Entry->calc_left[from_id] += CurLeftWrite;
+  Entry->calc_right[from_id] += CurRightWrite;
+
+  Entry->calc_read[Cur_id] += CurReadtime; //calc_total，总计数据都放到getworkerid中
+  Entry->calc_write[Cur_id] += CurWritetime;
+  Entry->calc_left[Cur_id] += CurLeftWrite;
+  Entry->calc_right[Cur_id] += CurRightWrite;
+
+  //stats update done
+
+#ifdef DYNAMIC_DEBUG
+  // directory.unlock(laddr);
+  // delete wr;
+  // wr = nullptr;
+  // return;
+#endif
+
+  if (Entry->calc_read[Cur_id] + Entry->calc_write[Cur_id] + Entry->read_time + Entry->write_time > Dir_interval) {
+    JudgeChange(wr->addr);
+    delete wr;
+    wr = nullptr;
+    return;
+  }
+  directory.unlock(laddr);
+  delete wr;
+  wr = nullptr;
+}
+
+void Worker::JudgeChange(GAddr addr) {
+  //already lock
+  void * laddr = ToLocal(addr);
+  DirEntry * Entry = directory.GetEntry(laddr);
+
+  DataState BeforeState = Entry->Dstate;
+  int n = (int)Entry->calc_read.size();
+
+  int Cur_id = GetWorkerId() - 1;
+  uint32 Total_read = Entry->calc_read[Cur_id] + Entry->read_time;
+  uint32 Total_write = Entry->calc_write[Cur_id] + Entry->write_time;
+  uint32 Total_vis = Total_read + Total_write;
+
+  double Read_mostly_ratio = 0.95;
+  double Access_exclusive_ratio = 0.95;
+  double Write_exclusive_ratio = 0.95;
+  double Least_read_ratio = 0.5;
+  double Least_write_ratio = 0.5;
+  double Write_share_ratio = 0.9;
+  int Most_split_time = 4;
+
+  // if (BeforeState != DataState::WRITE_SHARED) {
+  //read_mostly
+    if ( ( (1.0 * Total_read) / (1.0 * Total_vis) ) > Read_mostly_ratio ) { //读的比例很高
+      if (BeforeState == DataState::MSI) {
+        //epicLog(LOG_WARNING, "start change");
+        StartChange(addr, DataState::READ_MOSTLY);
+        return;
+      }
+      else {
+        directory.unlock(laddr);
+        return;
+      }
+    }
+
+  //   int Access_exclusive_id = -1;
+  //   int Write_exclusive_id = -1;
+  //   for (int i = 0; i < n; ++i) {
+  //     if (i == Cur_id) continue; //owner no change
+  //     uint32 Cur_vis = Entry->calc_read[i] + Entry->calc_write[i];
+  //     if ( (1.0 * Cur_vis) / (1.0 * Total_vis) > Access_exclusive_ratio) {
+  //       Access_exclusive_id = i;
+  //       break;
+  //     }
+      
+  //     if ( (1.0 * Total_write) / (1.0 * Total_vis) > Least_write_ratio) {
+  //       if ( (1.0 * (Entry->calc_write[i]) ) / (1.0 * Total_write) > Write_exclusive_ratio) {
+  //         Write_exclusive_id = i;
+  //       }
+  //     }
+  //   }
+
+  //   if (Access_exclusive_id != -1) { //access_exclusive
+  //     if (BeforeState == DataState::MSI) {
+  //       StartChange(addr, DataState::ACCESS_EXCLUSIVE);
+  //       return;
+  //     }
+  //     else {
+  //       directory.unlock(laddr);
+  //       return;
+  //     }
+  //   }
+
+  //   if (Write_exclusive_id != -1) { //write_exclusive
+  //     if (BeforeState == DataState::MSI) {
+  //       StartChange(addr, DataState::WRITE_EXCLUSIVE);
+  //       return;
+  //     }
+  //     else {
+  //       directory.unlock(laddr);
+  //       return;
+  //     }
+  //   }
+  // }
+  Entry->calc_left[Cur_id] = Entry->left_write;
+  Entry->calc_right[Cur_id] = Entry->Right_write;
+
+  uint32 write_diff = 0;
+  uint32 total_right_write = 0;
+  uint32 total_left_write = 0;
+  bool is_write_shared = true;
+  double another_least_write = 0.1;
+  int write_node_num = 0;
+
+  for (int i = 0; i < n; ++i) {
+    write_diff += abs( (int)(Entry->calc_left[i]) - (int)(Entry->calc_right[i]) );
+    total_left_write += Entry->calc_left[i];
+    total_right_write += Entry->calc_right[i];
+    if (Entry->calc_left[i] + Entry->calc_right[i] > 0) write_node_num ++;
+  }
+
+  if ( (total_right_write == 0 || total_left_write == 0) && write_node_num <= 1) is_write_shared = false;
+  else {
+    for (int i = 0; i < n; ++i) {
+      if ( (1.0 * (Entry->calc_left[i] + Entry->calc_right[i]) ) / (1.0 * Total_write) < (1.0 / n) ) continue;
+      if (Entry->calc_left[i] > Entry->calc_right[i]) {
+        if (total_right_write == 0) continue;
+        if ( (1.0 * Entry->calc_right[i]) / (1.0 * total_right_write) > another_least_write) {
+          is_write_shared = false;
+          break;
+        }
+      }
+      else {
+        if (total_left_write == 0) continue;
+        if ( (1.0 * Entry->calc_left[i]) / (1.0 * total_left_write) > another_least_write) {
+          is_write_shared = false;
+          break;
+        }
+      }
+    }
+  }
+
+  if (is_write_shared == true && (1.0 * write_diff) / (1.0 * Total_write) >  Write_share_ratio) {
+    if (Entry->MetaVersion <= Most_split_time) { // 限制分裂次数
+      if (BeforeState == DataState::MSI || BeforeState == DataState::WRITE_SHARED) {
+        StartChange(addr, DataState::WRITE_SHARED);
+        return;
+      }
+      else {
+        
+      }
+    }
+  }
+
+#ifdef DYNAMIC_DEBUG
+  if (Entry->Race_time > 1) { //used to test transform type directly
+    directory.clear_stats(Entry);
+    StartChange(addr, DataState::READ_MOSTLY);
+    return;
+  }
+#endif
+
+  directory.unlock(laddr);
+  return;
+}
+#endif
+
+void Worker::StartChange(GAddr addr, DataState CurState) { //MSI to another, write-shared to write-shared
   //epicLog(LOG_WARNING, "start change subblock");
   void * laddr = ToLocal(addr);
   //directory.lock(laddr); //在pending request里就锁住，保证原子性
   DirEntry * Entry = directory.GetEntry(laddr);
   DirState state = directory.GetState(Entry);
   list<GAddr>& shared = directory.GetSList(Entry);
+#ifdef DYNAMIC_SECOND
+#else
   MyAssert(state == DIR_DIRTY || state == DIR_SHARED);
+#endif
   if (state == DIR_UNSHARED) {
     directory.ToToUnShared(Entry);
     directory.unlock(laddr);
@@ -667,6 +906,11 @@ void Worker::StartChange(GAddr addr, DataState CurState) {
 
 void Worker::ChangeDir(GAddr addr, DataState CurState) {
   //epicLog(LOG_WARNING, "start changedir");
+#ifdef DYNAMIC_SECOND
+  // if (CurState != WRITE_SHARED) {
+  //   epicLog(LOG_WARNING, "another type: %d??", CurState);
+  // }
+#endif
   MyAssert(IsLocal(addr));
   void * laddr = ToLocal(addr);
 
@@ -684,10 +928,23 @@ void Worker::ChangeDir(GAddr addr, DataState CurState) {
     DirEntry * Next = directory.GetEntry(laddr + AfterSize);
     directory.DirInit(Next, CurState, AfterSize, CurMetaVersion);
     directory.DirInit(Entry, CurState, AfterSize, CurMetaVersion);
+#ifdef DYNAMIC_SECOND
+    strechvector(Entry);
+    strechvector(Next);
+#endif
 
     directory.ToToUnShared(Next);
     directory.ToToUnShared(Entry); //md 罪魁祸首，调一天
   }
+
+#ifdef DYNAMIC_SECOND
+  else if (CurState == DataState::READ_MOSTLY) { //normal thing
+    int CurMetaVersion = Entry->MetaVersion + 1;
+    directory.DirInit(Entry, CurState, Entry->MySize, CurMetaVersion);
+    strechvector(Entry);
+    directory.ToToUnShared(Entry);
+  }
+#endif
 
   WorkRequest * wr = new WorkRequest();
   
@@ -722,23 +979,24 @@ void Worker::ChangeDir(GAddr addr, DataState CurState) {
 void Worker::ProcessRemoteChange(Client * client, WorkRequest * wr) {
   DataState Curs = GetDataState(wr->flag);
   void * laddr = (void *)(wr->addr);
-  if (Curs == WRITE_SHARED) {
-    directory.lock(laddr);
-    DirEntry * Entry = directory.GetEntry(laddr);
-    if (Entry == nullptr) { //本地无副本，可以直接回复确认改变完毕
-      client->WriteWithImm(nullptr, nullptr, 0, wr->id);
-      directory.unlock(laddr);
-      delete wr;
-      wr = nullptr;
-      return;
-    }
-    if (directory.InTransitionState(Entry) ) { // 进入这个判断就可能是已经死锁了,但死锁不影响
-      epicLog(LOG_WARNING, "node's directory intransition");
-      // AddToServeRemoteRequest(wr->addr, client, wr);
-      // directory.unlock(laddr);
-      // return;
-    }
+  directory.lock(laddr);
+  DirEntry * Entry = directory.GetEntry(laddr);
+  if (Entry == nullptr) { //本地无副本，可以直接回复确认改变完毕
+    client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+    directory.unlock(laddr);
+    delete wr;
+    wr = nullptr;
+    return;
+  }
 
+  if (directory.InTransitionState(Entry) ) { // 进入这个判断就可能是已经死锁了,但死锁不影响
+    epicLog(LOG_WARNING, "node's directory intransition");
+    // AddToServeRemoteRequest(wr->addr, client, wr);
+    // directory.unlock(laddr);
+    // return;
+  }
+
+  if (Curs == WRITE_SHARED) {
     int PreSize = Entry->MySize;
     int AfterSize = PreSize / 2;
     int CurVersion = Entry->MetaVersion + 1;
@@ -754,6 +1012,16 @@ void Worker::ProcessRemoteChange(Client * client, WorkRequest * wr) {
     directory.unlock(laddr + AfterSize);
     directory.unlock(laddr);
   }
+#ifdef DYNAMIC_SECOND
+  else if (Curs == DataState::READ_MOSTLY) {
+    int CurVersion = Entry->MetaVersion + 1;
+    directory.DirInit(Entry, Curs, Entry->MySize, CurVersion);
+    client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+    directory.unlock(laddr);
+  }
+#endif
+  delete wr;
+  wr = nullptr;
 }
 
 void Worker::ProcessPendingChange(Client * client, WorkRequest * wr) {
@@ -763,18 +1031,38 @@ void Worker::ProcessPendingChange(Client * client, WorkRequest * wr) {
     void * laddr = ToLocal(wr->addr);
     directory.lock(laddr);
     DirEntry * Entry = directory.GetEntry(laddr);
+
+#ifdef DYNAMIC_SECOND
+    DataState Cur_Dstate = GetDataState(wr->flag);
+    if (Cur_Dstate == DataState::WRITE_SHARED) {
+      directory.lock(laddr + Entry->MySize);
+      DirEntry * Next = directory.GetEntry(laddr + Entry->MySize);
+      Next->state = DIR_UNSHARED;
+      directory.unlock(laddr + Entry->MySize);
+    }
+#else
     directory.lock(laddr + Entry->MySize);
     DirEntry * Next = directory.GetEntry(laddr + Entry->MySize);
     Next->state = DIR_UNSHARED;
     directory.unlock(laddr + Entry->MySize);
+#endif
     Entry->state = DIR_UNSHARED;
     int CurSize = Entry->MySize;
     directory.unlock(laddr);
 
     wr->unlock();
     ProcessToServeRequest(wr);
+
+#ifdef DYNAMIC_SECOND
+    if (Cur_Dstate == DataState::WRITE_SHARED) {
+      wr->addr += CurSize;
+      ProcessToServeRequest(wr);
+    }
+#else
     wr->addr += CurSize;
     ProcessToServeRequest(wr);
+#endif
+    
     delete wr;
     wr = nullptr;
     return ;
@@ -785,10 +1073,13 @@ void Worker::ProcessPendingChange(Client * client, WorkRequest * wr) {
 
 #ifdef B_I
 void Worker::UpdateVersion(DirEntry * Entry, GAddr addr) {
+  //return;//debug
   if (Entry->version_list.size() > 10) {
     printf ("already over 10 !!!\n");
   }
-  while (!(Entry->version_list.empty()) ) {
+  while (1) {
+    int List_size = Entry->version_list.size();
+    if (List_size <= 1) break;
     auto it = Entry->version_list.begin();
     BI_dir * Cur_Bientry = (*it);
     if ( (Entry->version_list.size() > Max_version) || (GMINUS(get_time(), Cur_Bientry->Timestamp) > Max_timediff) ) {
@@ -810,6 +1101,7 @@ void Worker::UpdateVersion(DirEntry * Entry, GAddr addr) {
     break;
   }
 }
+
 void Worker::ProcessRemoteBIWrite(Client * client, WorkRequest * wr) {
   void * Startcopy = ToLocal(wr->addr); //写开始的位置
   void * laddr = ToLocal(TOBLOCK(wr->addr)); //TODO： 在wr中用另外的变量存储目录位置，以兼容subblock

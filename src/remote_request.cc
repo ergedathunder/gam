@@ -283,6 +283,9 @@ void Worker::ProcessRemoteReadType (Client * client, WorkRequest * wr) {
   /* add xmx add */
 #ifdef SUB_BLOCK
   wr->size += appendInteger(buf + wr->size, entry->MySize); //增加传输一个代表当前目录大小的变量
+#ifdef DYNAMIC
+  wr->size += appendInteger(buf + wr->size, entry->MetaVersion);
+#endif
 #endif
 /* add xmx add */
   SubmitRequest(client, wr);
@@ -312,6 +315,11 @@ void Worker::ProcessRemoteTypeReply (Client * client, WorkRequest * wr) {
   int Size;
   CurSize += readInteger( ( (char*)wr->ptr + CurSize), Size);
   entry->MySize = Size;
+#ifdef DYNAMIC
+  int Cur_version = 0;
+  CurSize += readInteger( ( (char*)wr->ptr + CurSize), Cur_version);
+  entry->MetaVersion = Cur_version;
+#endif
   //printf ("Current block's Size : %d\n", Size); // just for initial test
 #endif
   /* add xmx add */
@@ -582,6 +590,14 @@ void Worker::ProcessRequest(Client *client, WorkRequest *wr)
     case CHANGE:
       {
         ProcessRemoteChange(client, wr);
+        break;
+      }
+#endif
+
+#ifdef DYNAMIC_SECOND
+    case SEND_STATS:
+      {
+        ProcessRemoteSendStats(client, wr);
         break;
       }
 #endif

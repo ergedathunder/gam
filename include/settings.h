@@ -35,16 +35,21 @@ using namespace std;
 
 /* add dynamic add */
 #define DYNAMIC
+#define DYNAMIC_SECOND
+#define DYNAMIC_DEBUG
+#define Time_interval 100000000
+#define Dir_interval 10
+#define Node_interval 5
 /* add dynamic add */
 
 /* add B_I add */
-#define B_I
-#define Max_version 15
-#define Max_timediff 2000000000000
+//#define B_I
+#define Max_version 10
+#define Max_timediff 10000000
 /* add B_I add */
 
 /* add debug add */
-#define XEG_DEBUG
+//#define XEG_DEBUG
 /* add debug add */
 
 //#define USE_PIPE_W_TO_H
@@ -86,14 +91,14 @@ using namespace std;
 /* add xmx add */
 //#define BLOCK_POWER 8
 //#define BLOCK_POWER 9
-#define BLOCK_POWER 10
-//#define BLOCK_POWER 11
+//#define BLOCK_POWER 10
+#define BLOCK_POWER 11
 //#define BLOCK_POWER 12
 
 //#define BLOCK_MASK 0xFFFFFFFFFFFFFF00L
 //#define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
-#define BLOCK_MASK 0xFFFFFFFFFFFFFC00L
-//#define BLOCK_MASK 0xFFFFFFFFFFFFF800L
+//#define BLOCK_MASK 0xFFFFFFFFFFFFFC00L
+#define BLOCK_MASK 0xFFFFFFFFFFFFF800L
 //#define BLOCK_MASK 0xFFFFFFFFFFFFF000L
 /* add xmx add */
 

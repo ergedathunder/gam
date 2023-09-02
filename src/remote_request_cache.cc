@@ -17,25 +17,24 @@ void Worker::ProcessRemoteRead(Client *client, WorkRequest *wr)
   directory.lock(laddr);
   DirEntry *entry = directory.GetEntry(laddr);
 #ifdef SUB_BLOCK
-  if (wr->flag & Write_shared) {
-    entry = directory.GetSubEntry(laddr);
+  entry = directory.GetSubEntry(laddr);
 #ifdef DYNAMIC
     //判断版本是否一致
-    if (wr->Version != directory.GetVersion(entry) ) { //版本不一致，需要重新发
-      /*
-        由于已经原子性的使得当前目录为unshared状态后，再做状态转换
-        所以这里版本仍然不一致，只能是副本节点cache处于invalid情况下，发送读请求（变为Cache_to_shared)
-        所以对于读操作可以用write_reply打回去之后，重新发送两个新的请求过来？
-        或许可以简单粗暴的加入toserverequest再执行？
-      */
-      wr->status = 5732;
-      wr->op = WRITE_REPLY;
-      SubmitRequest(client, wr);
-      directory.unlock(laddr);
-      return;
-    }
-#endif
+  if (wr->Version != directory.GetVersion(entry) ) { //版本不一致，需要重新发
+    /*
+      由于已经原子性的使得当前目录为unshared状态后，再做状态转换
+      所以这里版本仍然不一致，只能是副本节点cache处于invalid情况下，发送读请求（变为Cache_to_shared)
+      所以对于读操作可以用write_reply打回去之后，重新发送两个新的请求过来？
+      或许可以简单粗暴的加入toserverequest再执行？
+    */
+    wr->status = 5732;
+    wr->op = WRITE_REPLY;
+    SubmitRequest(client, wr);
+    directory.unlock(laddr);
+    return;
   }
+#endif
+
 #endif
   if (directory.InTransitionState(entry))
   {
@@ -379,21 +378,21 @@ void Worker::ProcessRemoteWrite(Client *client, WorkRequest *wr)
   directory.lock(laddr);
   DirEntry* entry;
 #ifdef SUB_BLOCK
-  if (wr->flag & Write_shared) {
+  //if (wr->flag & Write_shared) { // TODO: MSI转成write-shared似乎并不能进入这个判断。
     //epicLog(LOG_WARNING, "remote sub write here");
-    entry = directory.GetSubEntry(laddr);
+  entry = directory.GetSubEntry(laddr);
 #ifdef DYNAMIC
     //判断版本是否一致
-    if (wr->Version != directory.GetVersion(entry) ) { //版本不一致，需要重新发
-      wr->status = 5732;
-      wr->op = WRITE_REPLY;
-      SubmitRequest(client, wr);
-      directory.unlock(laddr);
-      return;
-    }
-#endif
+  if (wr->Version != directory.GetVersion(entry) ) { //版本不一致，需要重新发
+    //epicLog(LOG_WARNING, "version different");
+    wr->status = 5732;
+    wr->op = WRITE_REPLY;
+    SubmitRequest(client, wr);
+    directory.unlock(laddr);
+    return;
   }
-  else entry = directory.GetEntry(laddr);
+#endif
+  //}
 #else
   entry = directory.GetEntry(laddr);
 #endif
@@ -925,16 +924,18 @@ void Worker::ProcessRemoteWriteReply(Client *client, WorkRequest *wr)
     pwr->lock();
 #ifdef DYNAMIC
     if (wr->status == 5732) { //版本不一致导致的失败问题,重新执行pwr
-      //epicLog(LOG_WARNING, "got deadlock here");
       CacheLine * cline = cache.GetCLine(addr);
+      //epicLog(LOG_WARNING, "got deadlock here");
       MyAssert(cline->state == CACHE_TO_DIRTY || cline->state == CACHE_TO_SHARED);
-      if (cline != nullptr) cache.ToInvalid(cline);
+      if (cline != nullptr) {
+        cache.ToInvalid(cline);
+      }
       cache.unlock(addr);
-      parent->counter ++; //马上加入toserverequest
+      //parent->counter ++; //马上加入toserverequest
       pwr->unlock();
       parent->unlock();
       AddToServeLocalRequest(addr, parent);
-      ProcessLocalRequest(parent); //直接重新执行一遍。
+      ProcessToServeRequest(pwr); //直接重新执行一遍。
       delete wr;
       wr = nullptr;
       delete pwr;

@@ -261,6 +261,15 @@ void Test_writeshared() {
   GAddr addr2 = addr + 300;
 
   int val1, val2;
+  val1 = 1;
+  for (int i = 0; i < 100; ++i) {
+    Read_val(wh[0], addr1, &val1);
+    Read_val(wh[1], addr2, &val1);
+    Read_val(wh[2], addr1, &val1);
+  }
+  Write_val(wh[0], addr1, &val1);
+  return;
+
   /*
   val1 = 2;
   printf ("addr : %lld\n", addr);

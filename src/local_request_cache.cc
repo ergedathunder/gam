@@ -62,6 +62,13 @@ int Worker::ProcessLocalRead(WorkRequest *wr)
       DataState Ds = directory.GetDataState(entry);
       GAddr Cur_owner = directory.GetOwner(entry);
 
+#ifdef DYNAMIC_SECOND
+      if (Ds != DataState::WRITE_SHARED) {
+        GAddr Cur_gs = i > start ? i : start;
+        CollectStats(entry, Cur_gs, i, (wr->op == READ) );
+      }
+#endif
+
       if (Ds != MSI)
       {
         if (Ds == ACCESS_EXCLUSIVE)
@@ -199,6 +206,11 @@ int Worker::ProcessLocalRead(WorkRequest *wr)
             i = nextb;
             continue;
           }
+
+#ifdef DYNAMIC_SECOND
+          GAddr Cur_gs = i > start ? i : start;
+          CollectStats(entry, Cur_gs, i, (wr->op == READ) );
+#endif
 
           if (unlikely(s == DIR_DIRTY)) {
             WorkRequest* lwr = new WorkRequest(*wr);
@@ -427,7 +439,12 @@ int Worker::ProcessLocalWrite(WorkRequest *wr)
 
       DataState Ds = directory.GetDataState(entry);
       GAddr Cur_owner = directory.GetOwner(entry);
-
+#ifdef DYNAMIC_SECOND
+      if (Ds != DataState::WRITE_SHARED) {
+        GAddr Cur_gs = i > start ? i : start;
+        CollectStats(entry, Cur_gs, i, (wr->op == READ) );
+      }
+#endif
       if (Ds != MSI)
       {
         if (Ds == ACCESS_EXCLUSIVE)
@@ -610,6 +627,10 @@ int Worker::ProcessLocalWrite(WorkRequest *wr)
             i = nextb;
             continue;
           }
+#ifdef DYNAMIC_SECOND
+          GAddr Cur_gs = i > start ? i : start;
+          CollectStats(entry, Cur_gs, i, (wr->op == READ) );
+#endif
           if (state == DIR_DIRTY || state == DIR_SHARED) {
             list<GAddr>& shared = directory.GetSList(entry);
             WorkRequest* lwr = new WorkRequest(*wr);

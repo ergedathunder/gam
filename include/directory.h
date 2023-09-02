@@ -56,9 +56,21 @@ struct DirEntry
 
   #ifdef DYNAMIC
   uint64 Race_time = 0; //统计写写冲突发生的次数
-  std::unordered_map <uint64, uint64> Left; //统计左半边访问的情况
-  std::unordered_map <uint64, uint64> Right;//统计右半边访问的情况
+  // std::unordered_map <uint64, uint64> Left; //统计左半边访问的情况
+  // std::unordered_map <uint64, uint64> Right;//统计右半边访问的情况
   int MetaVersion = 0; //记录目录的版本信息
+  #endif
+
+  #ifdef DYNAMIC_SECOND
+  uint64 running_time = 0; //每隔一段时间进行数据统计转发
+  uint32 read_time = 0; //对该缓存块读的次数
+  uint32 write_time = 0;//对该缓存块写的次数
+  uint32 left_write = 0; //对该缓存块左半边写的次数
+  uint32 Right_write = 0;//对该缓存块右半边写的次数
+  std::vector<uint32> calc_read; //用于主节点统计所有节点读的情况
+  std::vector<uint32> calc_write;//用于主节点统计所有节点写的情况
+  std::vector<uint32> calc_left; //用于主节点统计所有节点写左边的情况
+  std::vector<uint32> calc_right;//用于主节点统计所有节点写右边的情况
   #endif
 
   #ifdef B_I
@@ -334,7 +346,7 @@ public:
     }
 #ifdef SUB_BLOCK
     if (Cur_state == WRITE_SHARED) {
-      int Divide = 2;
+      int Divide = 1;
       int CurSize = (BLOCK_SIZE / Divide);
 
       entry->MySize = CurSize;
@@ -349,6 +361,7 @@ public:
         CurEntry->owner = Owner;
         dir[CurStart] = CurEntry;
         CurEntry->MySize = CurSize;
+        CurEntry->MetaVersion = 1;
       }
     }
     else entry->MySize = BLOCK_SIZE;
@@ -376,11 +389,21 @@ public:
     Entry->MySize = CurSize;
     Entry->MetaVersion = CurVersion;
     Entry->state = DIR_UNSHARED;
-    Entry->Left.clear();
-    Entry->Right.clear();
+    // Entry->Left.clear();
+    // Entry->Right.clear();
     Entry->Race_time = 0;
     Entry->owner = 0;
     Entry->shared.clear();
+#ifdef DYNAMIC_SECOND
+    Entry->read_time = 0; //initialize
+    Entry->write_time = 0;
+    Entry->Right_write = 0;
+    Entry->left_write = 0;
+    Entry->calc_left.clear();
+    Entry->calc_right.clear();
+    Entry->calc_read.clear();
+    Entry->calc_write.clear();
+#endif
   }
 
   uint64 GetRacetime (DirEntry * entry) {
@@ -405,6 +428,21 @@ public:
   
   int GetVersion (void * ptr_t) {
     return GetVersion(GetEntry(ptr_t));
+  }
+#endif
+
+#ifdef DYNAMIC_SECOND
+  void clear_stats(DirEntry * Entry) {
+    Entry->read_time = 0;
+    Entry->write_time = 0;
+    Entry->left_write = 0;
+    Entry->Right_write = 0;
+    for (int i = 0; i < (int)Entry->calc_left.size(); ++i) {
+      Entry->calc_left[i] = 0;
+      Entry->calc_right[i] = 0;
+      Entry->calc_write[i] = 0;
+      Entry->calc_read[i] = 0;
+    }
   }
 #endif
   /* add ergeda add */
