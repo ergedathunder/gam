@@ -263,9 +263,9 @@ void Test_writeshared() {
   int val1, val2;
   val1 = 1;
   for (int i = 0; i < 100; ++i) {
-    Read_val(wh[0], addr1, &val1);
-    Read_val(wh[1], addr2, &val1);
-    Read_val(wh[2], addr1, &val1);
+    Write_val(wh[0], addr1, &val1);
+    Read_val(wh[1], addr1, &val1);
+    Write_val(wh[0], addr1, &val1);
   }
   Write_val(wh[0], addr1, &val1);
   return;

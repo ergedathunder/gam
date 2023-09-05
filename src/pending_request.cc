@@ -256,7 +256,20 @@ void Worker::ProcessPendingWrite(Client *cli, WorkRequest *wr)
     if ( (--wr->counter) == 0) { //所有副本节点都已经invalidate成功
       MyAssert(IsLocal(wr->addr));
       wr->unlock();
+#ifdef DYNAMIC_SECOND
+      DataState Cur_Dstate = GetDataState(wr->flag);
+      if (Cur_Dstate == DataState::ACCESS_EXCLUSIVE || Cur_Dstate == DataState::WRITE_EXCLUSIVE) {
+        epicLog(LOG_WARNING, "got here");
+        Prepare_for_ae(wr->addr, wr->flag, wr->arg);
+        //此时目录仍然处于transition state，相当于同步等待请求完成。
+      }
+      else {
+        ChangeDir(wr->addr, GetDataState(wr->flag) );
+      }
+      int ret = ErasePendingWork(wr->id);
+#else
       ChangeDir(wr->addr, GetDataState(wr->flag) );
+#endif
       delete wr; //有待商榷
       wr = nullptr;
       return;
@@ -1144,6 +1157,15 @@ void Worker::ProcessPendingRmRead(Client *client, WorkRequest *wr)
 
 void Worker::ProcessPendingPrivateWrite(Client *client, WorkRequest *wr)
 {
+#ifdef DYNAMIC_SECOND
+  if (wr->flag & CheckChange) {
+    ChangeDir(wr->addr, GetDataState(wr->flag), wr->arg);
+    int ret = ErasePendingWork(wr->id);
+    delete wr;
+    wr = nullptr;
+    return;
+  }
+#endif
   // Just_for_test("ProcessPendingPrivateWrite", wr);
   WorkRequest *parent = wr->parent;
   parent->lock();

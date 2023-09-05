@@ -400,15 +400,16 @@ public:
     else if (Curs == DataState::READ_ONLY) return Read_only;
     else if (Curs == DataState::WRITE_EXCLUSIVE) return Write_exclusive;
   }
-  void ChangeDir (GAddr addr, DataState CurState);
+  void ChangeDir (GAddr addr, DataState CurState, GAddr CurOwner = 0);
   void ProcessRemoteChange(Client * client, WorkRequest * wr);
   void ProcessPendingChange(Client * client, WorkRequest * wr);
-  void StartChange(GAddr addr, DataState CurState);
+  void StartChange(GAddr addr, DataState CurState, GAddr CurOwner = 0);
 
 #ifdef DYNAMIC_SECOND
   void CollectStats(DirEntry * Entry, GAddr addr, GAddr DirStart, bool flag);
   void JudgeChange(GAddr addr);
   void ProcessRemoteSendStats(Client * client, WorkRequest * wr);
+  void Prepare_for_ae (GAddr addr, int flag, uint64 Owner);
 
   void strechvector(DirEntry * Entry) { //初始化所有的vector数组，比如在一开始建立entry的时候就要初始化，每次状态发生转化的时候也记得要重新初始化。
     //仅仅在目录节点进行操作，其他节点通过read_time等等变量进行统计即可。

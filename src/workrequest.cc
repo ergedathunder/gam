@@ -74,7 +74,7 @@ int WorkRequest::Ser(char* buf, int& len) {
       break;
 #ifdef DYNAMIC
     case CHANGE:
-      len = appendInteger(buf, lop, id, wid, addr, flag);
+      len = appendInteger(buf, lop, id, wid, addr, flag, arg);
       break;
 #endif
 
@@ -309,7 +309,7 @@ int WorkRequest::Deser(const char* buf, int& len) {
       break;
 #ifdef DYNAMIC
     case CHANGE:
-      p += readInteger(p, id, wid, addr, flag);
+      p += readInteger(p, id, wid, addr, flag, arg);
       break;
 #endif
 

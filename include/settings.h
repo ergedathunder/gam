@@ -38,8 +38,8 @@ using namespace std;
 #define DYNAMIC_SECOND
 #define DYNAMIC_DEBUG
 #define Time_interval 100000000
-#define Dir_interval 10
-#define Node_interval 5
+#define Dir_interval 100000
+#define Node_interval 50000
 /* add dynamic add */
 
 /* add B_I add */

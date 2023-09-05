@@ -112,7 +112,7 @@ int Cache::ReadWrite(WorkRequest *wr)
     }
 #endif
 
-    if (Cur_Dstate != WRITE_EXCLUSIVE)
+    if (Cur_Dstate != WRITE_EXCLUSIVE) //???
       worker->directory.unlock((void *)i);
     if (Cur_Dstate == DataState::ACCESS_EXCLUSIVE)
     {

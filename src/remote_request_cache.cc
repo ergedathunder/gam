@@ -925,10 +925,23 @@ void Worker::ProcessRemoteWriteReply(Client *client, WorkRequest *wr)
 #ifdef DYNAMIC
     if (wr->status == 5732) { //版本不一致导致的失败问题,重新执行pwr
       CacheLine * cline = cache.GetCLine(addr);
-      //epicLog(LOG_WARNING, "got deadlock here");
       MyAssert(cline->state == CACHE_TO_DIRTY || cline->state == CACHE_TO_SHARED);
       if (cline != nullptr) {
+#ifdef DYNAMIC_SECOND
+        DirEntry * Entry = directory.GetEntry( (void*)addr);
+        if (Entry == nullptr){
+          epicLog(LOG_WARNING, "fatal error, no entry exist");
+        }
+        if (Entry->Dstate == DataState::ACCESS_EXCLUSIVE || Entry->Dstate == DataState::WRITE_EXCLUSIVE) {
+          if (GetWorkerId() == WID(Entry->owner)) {
+            //epicLog(LOG_WARNING, "got deadlock here");
+          }
+          else cache.ToInvalid(cline);
+        }
+        else cache.ToInvalid(cline);
+#else
         cache.ToInvalid(cline);
+#endif
       }
       cache.unlock(addr);
       //parent->counter ++; //马上加入toserverequest

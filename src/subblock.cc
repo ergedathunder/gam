@@ -749,6 +749,14 @@ void Worker::JudgeChange(GAddr addr) {
   double Write_share_ratio = 0.9;
   int Most_split_time = 4;
 
+#ifdef DYNAMIC_DEBUG
+  if (Entry->Race_time > 1) { //used to test transform type directly
+    directory.clear_stats(Entry);
+    StartChange(addr, DataState::WRITE_SHARED);
+    return;
+  }
+#endif
+
   // if (BeforeState != DataState::WRITE_SHARED) {
   //read_mostly
     if ( ( (1.0 * Total_read) / (1.0 * Total_vis) ) > Read_mostly_ratio ) { //读的比例很高
@@ -763,44 +771,48 @@ void Worker::JudgeChange(GAddr addr) {
       }
     }
 
-  //   int Access_exclusive_id = -1;
-  //   int Write_exclusive_id = -1;
-  //   for (int i = 0; i < n; ++i) {
-  //     if (i == Cur_id) continue; //owner no change
-  //     uint32 Cur_vis = Entry->calc_read[i] + Entry->calc_write[i];
-  //     if ( (1.0 * Cur_vis) / (1.0 * Total_vis) > Access_exclusive_ratio) {
-  //       Access_exclusive_id = i;
-  //       break;
-  //     }
+    int Access_exclusive_id = -1;
+    int Write_exclusive_id = -1;
+    for (int i = 0; i < n; ++i) {
+      if (i == Cur_id) continue; //owner no change
+      uint32 Cur_vis = Entry->calc_read[i] + Entry->calc_write[i];
+      if ( (1.0 * Cur_vis) / (1.0 * Total_vis) > Access_exclusive_ratio) {
+        Access_exclusive_id = i;
+        break;
+      }
       
-  //     if ( (1.0 * Total_write) / (1.0 * Total_vis) > Least_write_ratio) {
-  //       if ( (1.0 * (Entry->calc_write[i]) ) / (1.0 * Total_write) > Write_exclusive_ratio) {
-  //         Write_exclusive_id = i;
-  //       }
-  //     }
-  //   }
+      if ( (1.0 * Total_write) / (1.0 * Total_vis) > Least_write_ratio) {
+        if ( (1.0 * (Entry->calc_write[i]) ) / (1.0 * Total_write) > Write_exclusive_ratio) {
+          Write_exclusive_id = i;
+        }
+      }
+    }
 
-  //   if (Access_exclusive_id != -1) { //access_exclusive
-  //     if (BeforeState == DataState::MSI) {
-  //       StartChange(addr, DataState::ACCESS_EXCLUSIVE);
-  //       return;
-  //     }
-  //     else {
-  //       directory.unlock(laddr);
-  //       return;
-  //     }
-  //   }
+    if (Access_exclusive_id != -1) { //access_exclusive
+      if (BeforeState == DataState::MSI && BLOCK_SIZE <= 512) {
+        epicLog(LOG_WARNING, "change to access_exclusive");
+        GAddr Cur_Owner = ((long long)(Access_exclusive_id + 1) << 48);
+        StartChange(addr, DataState::ACCESS_EXCLUSIVE, Cur_Owner);
+        return;
+      }
+      else {
+        directory.unlock(laddr);
+        return;
+      }
+    }
 
-  //   if (Write_exclusive_id != -1) { //write_exclusive
-  //     if (BeforeState == DataState::MSI) {
-  //       StartChange(addr, DataState::WRITE_EXCLUSIVE);
-  //       return;
-  //     }
-  //     else {
-  //       directory.unlock(laddr);
-  //       return;
-  //     }
-  //   }
+    if (Write_exclusive_id != -1) { //write_exclusive
+      if (BeforeState == DataState::MSI && BLOCK_SIZE <= 512) {
+        epicLog(LOG_WARNING, "change to write_exclusive");
+        GAddr Cur_Owner = ((long long)(Write_exclusive_id + 1) << 48);
+        StartChange(addr, DataState::WRITE_EXCLUSIVE, Cur_Owner);
+        return;
+      }
+      else {
+        directory.unlock(laddr);
+        return;
+      }
+    }
   // }
   Entry->calc_left[Cur_id] = Entry->left_write;
   Entry->calc_right[Cur_id] = Entry->Right_write;
@@ -865,7 +877,22 @@ void Worker::JudgeChange(GAddr addr) {
 }
 #endif
 
-void Worker::StartChange(GAddr addr, DataState CurState) { //MSI to another, write-shared to write-shared
+void Worker::Prepare_for_ae (GAddr addr, int flag, uint64 Owner) {
+  WorkRequest * subwr = new WorkRequest();
+  char buf[BLOCK_SIZE + 2];
+  memcpy(buf, ToLocal(addr), BLOCK_SIZE);
+  subwr->ptr = buf;
+  subwr->size = BLOCK_SIZE;
+  subwr->addr = addr;
+  subwr->op = JUST_WRITE;
+  subwr->flag = flag;
+  subwr->arg = Owner;
+  Client *Owner_cli = GetClient(Owner);
+  epicLog(LOG_WARNING, "owner here is %d", (Owner >> 48) );
+  SubmitRequest(Owner_cli, subwr, ADD_TO_PENDING | REQUEST_SEND);
+}
+
+void Worker::StartChange(GAddr addr, DataState CurState, GAddr CurOwner) { //MSI to another, write-shared to write-shared
   //epicLog(LOG_WARNING, "start change subblock");
   void * laddr = ToLocal(addr);
   //directory.lock(laddr); //在pending request里就锁住，保证原子性
@@ -878,8 +905,19 @@ void Worker::StartChange(GAddr addr, DataState CurState) { //MSI to another, wri
 #endif
   if (state == DIR_UNSHARED) {
     directory.ToToUnShared(Entry);
+    
+#ifdef DYNAMIC_SECOND
+    if (CurState == DataState::ACCESS_EXCLUSIVE || CurState == DataState::WRITE_EXCLUSIVE) {
+      Prepare_for_ae(addr, (CheckChange | RevGetstate(CurState) ), CurOwner);
+      directory.unlock(laddr);
+      return;
+    }
+    directory.unlock(laddr);
+    ChangeDir(addr, CurState, CurOwner);
+#else
     directory.unlock(laddr);
     ChangeDir(addr, CurState);
+#endif
     return;
   }
 
@@ -894,6 +932,10 @@ void Worker::StartChange(GAddr addr, DataState CurState) { //MSI to another, wri
   lwr->id = GetWorkPsn();
   lwr->counter = shared.size();
 
+#ifdef DYNAMIC_SECOND
+  lwr->arg = CurOwner;
+#endif
+
   directory.ToToUnShared(Entry);
 
   AddToPending(lwr->id, lwr);
@@ -904,7 +946,7 @@ void Worker::StartChange(GAddr addr, DataState CurState) { //MSI to another, wri
   directory.unlock(laddr);
 }
 
-void Worker::ChangeDir(GAddr addr, DataState CurState) {
+void Worker::ChangeDir(GAddr addr, DataState CurState, GAddr CurOwner) {
   //epicLog(LOG_WARNING, "start changedir");
 #ifdef DYNAMIC_SECOND
   // if (CurState != WRITE_SHARED) {
@@ -944,6 +986,14 @@ void Worker::ChangeDir(GAddr addr, DataState CurState) {
     strechvector(Entry);
     directory.ToToUnShared(Entry);
   }
+
+  else if (CurState == DataState::ACCESS_EXCLUSIVE || CurState == DataState::WRITE_EXCLUSIVE) {
+    int CurMetaVersion = Entry->MetaVersion + 1;
+    directory.DirInit(Entry, CurState, Entry->MySize, CurMetaVersion);
+    strechvector(Entry);
+    directory.ToToUnShared(Entry);
+    Entry->owner = CurOwner; //diff
+  }
 #endif
 
   WorkRequest * wr = new WorkRequest();
@@ -955,6 +1005,10 @@ void Worker::ChangeDir(GAddr addr, DataState CurState) {
   wr->id = GetWorkPsn();
   wr->flag = RevGetstate(CurState);
   wr->counter = (int)widCliMapWorker.size();
+
+#ifdef DYNAMIC_SECOND
+  wr->arg = CurOwner;
+#endif
   
   bool first = true;
   for (auto& entry: widCliMapWorker) {
@@ -1018,6 +1072,18 @@ void Worker::ProcessRemoteChange(Client * client, WorkRequest * wr) {
     directory.DirInit(Entry, Curs, Entry->MySize, CurVersion);
     client->WriteWithImm(nullptr, nullptr, 0, wr->id);
     directory.unlock(laddr);
+  }
+
+  else if (Curs == DataState::ACCESS_EXCLUSIVE || Curs == DataState::WRITE_EXCLUSIVE) {
+    int CurVersion = Entry->MetaVersion + 1;
+    directory.DirInit(Entry, Curs, Entry->MySize, CurVersion);
+    client->WriteWithImm(nullptr, nullptr, 0, wr->id);
+    Entry->owner = wr->arg; //diff
+    if (WID(wr->addr) == GetWorkerId()) directory.ToUnShared(Entry);
+    directory.unlock(laddr);
+    if (WID(wr->addr) == GetWorkerId()) {
+      ProcessToServeRequest(wr);
+    }
   }
 #endif
   delete wr;
