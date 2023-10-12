@@ -90,6 +90,33 @@ public:
   int HTable(void *);
 #endif
 
+#ifdef SUB_BLOCK
+  uint64_t getTransferredBytes() const {
+    return wh->getTransferredBytes();
+  }
+  uint64_t getracetime() const {
+    return wh->getracetime();
+  }
+  uint64_t getrequesttime() const {
+    return wh->getrequesttime();
+  }
+#endif
+
+#ifdef B_I
+  uint64_t getreadmiss() const {
+    return wh->getreadmiss();
+  }
+  uint64_t getreadhit() const{
+    return wh->getreadhit();
+  }
+  uint64_t getwritemiss() const {
+    return wh->getwritemiss();
+  }
+  uint64_t getwritehit() const {
+    return wh->getwritehit();
+  }
+#endif
+
   inline int GetID()
   {
     return wh->GetWorkerId();

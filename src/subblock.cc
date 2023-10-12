@@ -750,18 +750,19 @@ void Worker::JudgeChange(GAddr addr) {
   int Most_split_time = 4;
 
 #ifdef DYNAMIC_DEBUG
-  if (Entry->Race_time > 1) { //used to test transform type directly
-    directory.clear_stats(Entry);
-    StartChange(addr, DataState::WRITE_SHARED);
-    return;
-  }
+  // if (Entry->Race_time > 1) { //used to test transform type directly
+  //   directory.clear_stats(Entry);
+  //   //StartChange(addr, DataState::WRITE_SHARED);
+  //   StartChange(addr, DataState::ACCESS_EXCLUSIVE, (1ll << 48) );
+  //   return;
+  // }
 #endif
 
   // if (BeforeState != DataState::WRITE_SHARED) {
   //read_mostly
     if ( ( (1.0 * Total_read) / (1.0 * Total_vis) ) > Read_mostly_ratio ) { //读的比例很高
       if (BeforeState == DataState::MSI) {
-        //epicLog(LOG_WARNING, "start change");
+        //epicLog(LOG_WARNING, "change to read_mostly");
         StartChange(addr, DataState::READ_MOSTLY);
         return;
       }
@@ -790,7 +791,7 @@ void Worker::JudgeChange(GAddr addr) {
 
     if (Access_exclusive_id != -1) { //access_exclusive
       if (BeforeState == DataState::MSI && BLOCK_SIZE <= 512) {
-        epicLog(LOG_WARNING, "change to access_exclusive");
+        //epicLog(LOG_WARNING, "change to access_exclusive");
         GAddr Cur_Owner = ((long long)(Access_exclusive_id + 1) << 48);
         StartChange(addr, DataState::ACCESS_EXCLUSIVE, Cur_Owner);
         return;
@@ -803,7 +804,7 @@ void Worker::JudgeChange(GAddr addr) {
 
     if (Write_exclusive_id != -1) { //write_exclusive
       if (BeforeState == DataState::MSI && BLOCK_SIZE <= 512) {
-        epicLog(LOG_WARNING, "change to write_exclusive");
+        //epicLog(LOG_WARNING, "change to write_exclusive");
         GAddr Cur_Owner = ((long long)(Write_exclusive_id + 1) << 48);
         StartChange(addr, DataState::WRITE_EXCLUSIVE, Cur_Owner);
         return;
@@ -867,7 +868,7 @@ void Worker::JudgeChange(GAddr addr) {
 #ifdef DYNAMIC_DEBUG
   if (Entry->Race_time > 1) { //used to test transform type directly
     directory.clear_stats(Entry);
-    StartChange(addr, DataState::READ_MOSTLY);
+    StartChange(addr, DataState::WRITE_SHARED);
     return;
   }
 #endif
@@ -888,7 +889,7 @@ void Worker::Prepare_for_ae (GAddr addr, int flag, uint64 Owner) {
   subwr->flag = flag;
   subwr->arg = Owner;
   Client *Owner_cli = GetClient(Owner);
-  epicLog(LOG_WARNING, "owner here is %d", (Owner >> 48) );
+  //epicLog(LOG_WARNING, "owner here is %d", (Owner >> 48) );
   SubmitRequest(Owner_cli, subwr, ADD_TO_PENDING | REQUEST_SEND);
 }
 
@@ -1044,7 +1045,7 @@ void Worker::ProcessRemoteChange(Client * client, WorkRequest * wr) {
   }
 
   if (directory.InTransitionState(Entry) ) { // 进入这个判断就可能是已经死锁了,但死锁不影响
-    epicLog(LOG_WARNING, "node's directory intransition");
+    //epicLog(LOG_WARNING, "node's directory intransition");
     // AddToServeRemoteRequest(wr->addr, client, wr);
     // directory.unlock(laddr);
     // return;

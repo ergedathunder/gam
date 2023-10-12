@@ -481,6 +481,9 @@ int Cache::ReadWrite(WorkRequest *wr)
         if (state == CACHE_TO_INVALID && READ == wr->op)
         {
           worker->read_SorM++;
+#ifdef B_I
+          worker->read_hit += 1;
+#endif
           epicLog(LOG_INFO, "cache is going to be invalid, but still usable for read op = %d", wr->op);
           GAddr gs = i > start ? i : start;
           epicAssert(GMINUS(nextb, gs) > 0);
@@ -500,6 +503,9 @@ int Cache::ReadWrite(WorkRequest *wr)
         if (state == CACHE_TO_DIRTY && READ == wr->op && IsBlockLocked(cline))
         {
           worker->read_SorM++;
+#ifdef B_I
+          worker->read_hit += 1;
+#endif
           epicAssert(!IsBlockWLocked(cline));
           epicLog(
               LOG_INFO, "cache is going from shared to dirty, but still usable for read op = %d", wr->op);
@@ -551,6 +557,9 @@ int Cache::ReadWrite(WorkRequest *wr)
         if (READ == wr->op)
         {
           worker->read_SorM++;
+#ifdef B_I
+          worker->read_hit += 1;
+#endif
           memcpy(ls, cs, len);
           /*
           #ifdef USE_LRU
@@ -564,6 +573,9 @@ int Cache::ReadWrite(WorkRequest *wr)
           if (state != CACHE_DIRTY)
           {
             worker->write_IorS++;
+#ifdef B_I
+            worker->write_miss += 1;
+#endif
             wr->is_cache_hit_ = false;
             WorkRequest *lwr = new WorkRequest(*wr);
             lwr->counter = 0;
@@ -602,6 +614,9 @@ int Cache::ReadWrite(WorkRequest *wr)
           else
           {
             worker->write_M++;
+#ifdef B_I
+              worker->write_hit += 1;
+#endif
             epicAssert(len);
             worker->logWrite(wr->addr, len, ls);
             memcpy(cs, ls, len);
@@ -653,12 +668,18 @@ int Cache::ReadWrite(WorkRequest *wr)
         if (READ == wr->op)
         {
           worker->read_I++;
+#ifdef B_I
+          worker->read_miss += 1;
+#endif
           epicAssert(cline->state != CACHE_TO_SHARED);
           ToToShared(cline);
         }
         else
         { // WRITE
           worker->write_IorS++;
+#ifdef B_I
+          worker->write_miss += 1;
+#endif
           epicAssert(cline->state != CACHE_TO_DIRTY);
           ToToDirty(cline);
         }

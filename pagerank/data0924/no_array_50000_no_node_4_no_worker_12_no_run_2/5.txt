@@ -1,0 +1,173 @@
+
+/home/xeg/last/gam/pagerank/pagerank --no_node 4 --no_array 50000 --ip_master 10.77.110.155 --ip_worker 10.77.110.155 --port_worker 5530 --is_master 1 --port_master 5732 --no_run 2 --is_read 1
+node 0 has 3 threads
+end get rdma source
+/home/xeg/last/gam/pagerank/pagerank --no_node 4 --no_array 50000 --ip_master 10.77.110.155 --ip_worker 10.77.110.158 --port_worker 5330 --is_master 0 --port_master 5732 --no_run 2 --is_read 1
+node 1 has 3 threads
+end get rdma source
+/home/xeg/last/gam/pagerank/pagerank --no_node 4 --no_array 50000 --ip_master 10.77.110.155 --ip_worker 10.77.110.159 --port_worker 5130 --is_master 0 --port_master 5732 --no_run 2 --is_read 1
+node 2 has 3 threads
+end get rdma source
+/home/xeg/last/gam/pagerank/pagerank --no_node 4 --no_array 50000 --ip_master 10.77.110.155 --ip_worker 10.77.110.160 --port_worker 4930 --is_master 0 --port_master 5732 --no_run 2 --is_read 1
+cur worker_port : 5530
+cur node_id : 1
+
+end get rdma source
+node 3 has 3 threads
+end get rdma source
+cur worker_port : 5330
+cur node_id : 2
+
+end get rdma source
+cur worker_port : 5130
+cur node_id : 3
+
+end get rdma source
+cur worker_port : 5520
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 4930
+cur node_id : 5
+
+end get rdma source
+cur worker_port : 5320
+cur node_id : 6
+
+end get rdma source
+cur worker_port : 5120
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 5510
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+start read_file
+cur worker_port : 4920
+cur node_id : 9
+
+end get rdma source
+cur worker_port : 5310
+cur node_id : 10
+
+worker i de id = 2 
+worker i de id = 6 
+worker i de id = 10 
+node_id = 2
+start read_file
+worker 4 got weight[0] : 281475044278272
+worker 8 got weight[0] : 281475044278272
+cur worker_port : 5110
+cur node_id : 11
+
+worker i de id = 3 
+worker i de id = 7 
+worker i de id = 11 
+node_id = 3
+start read_file
+cur worker_port : 4910
+cur node_id : 12
+
+worker i de id = 5 
+worker i de id = 9 
+worker i de id = 12 
+node_id = 4
+end get rdma source
+worker 10 got weight[0] : 281475044278272
+worker 6 got weight[0] : 281475044278272
+worker 2 got weight[0] : 281475044278272
+worker 3 got weight[0] : 281475044278272
+worker 7 got weight[0] : 281475044278272
+worker 11 got weight[0] : 281475044278272
+cur worker_port : 4900
+cur node_id : 13
+
+end get rdma source
+cur worker_port : 4890
+cur node_id : 14
+
+end get rdma source
+cur worker_port : 4880
+cur node_id : 15
+
+start read_file
+worker 12 got weight[0] : 281475044278272
+worker 14 got weight[0] : 281475044278272
+worker 9 got weight[0] : 281475044278272
+worker 5 got weight[0] : 281475044278272
+worker 13 got weight[0] : 281475044278272
+worker 15 got weight[0] : 281475044278272
+node 4 finish first sync
+Start : 45827, End : 50000
+node 4 finish first sync
+start behind_thread
+node 1 finish first sync
+Start : 1, End : 4166
+node 1 finish first sync
+node 1 finish first sync
+node 4 finish first sync
+node 3 finish first sync
+node 3 finish first sync
+Start : 41661, End : 45826
+node 3 finish first sync
+node 2 finish first sync
+node 2 finish first sync
+Start : 37495, End : 41660
+node 2 finish first sync
+node 4 finish first sync
+start behind_thread
+node 4 finish first sync
+node 4 finish first sync
+start behind_thread
+round 1 error : 0.08840
+round 2 error : 0.01092
+round 3 error : 0.00246
+round 4 error : 0.00154
+round 5 error : 0.00147
+round 6 error : 0.00146
+round 7 error : 0.00146
+round 8 error : 0.00145
+round 9 error : 0.00144
+round 10 error : 0.00144
+round 11 error : 0.00144
+round 12 error : 0.00143
+round 13 error : 0.00143
+round 14 error : 0.00143
+round 15 error : 0.00143
+round 16 error : 0.00143
+round 17 error : 0.00143
+round 18 error : 0.00143
+round 19 error : 0.00143
+round 20 error : 0.00143
+worker[1] : (read_miss: 0), (read_hit: 5092160), (write_miss: 0), (write_hit: 83360)
+running time : 2674234201
+worker[4] : (read_miss: 22983), (read_hit: 5069357), (write_miss: 83360), (write_hit: 0)
+worker[8] : (read_miss: 20981), (read_hit: 5068479), (write_miss: 83360), (write_hit: 0)
+worker[9] : (read_miss: 29178), (read_hit: 5038962), (write_miss: 83360), (write_hit: 0)
+worker[5] : (read_miss: 30725), (read_hit: 5061555), (write_miss: 83360), (write_hit: 0)
+worker[12] : (read_miss: 31809), (read_hit: 5046091), (write_miss: 83520), (write_hit: 0)
+worker[10] : (read_miss: 29991), (read_hit: 5046069), (write_miss: 83360), (write_hit: 0)
+worker[6] : (read_miss: 30062), (read_hit: 5048958), (write_miss: 83360), (write_hit: 0)
+worker[2] : (read_miss: 31722), (read_hit: 5041598), (write_miss: 83360), (write_hit: 0)
+worker[11] : (read_miss: 30703), (read_hit: 5060457), (write_miss: 83360), (write_hit: 0)
+worker[3] : (read_miss: 31269), (read_hit: 5059811), (write_miss: 83360), (write_hit: 0)
+worker[7] : (read_miss: 31765), (read_hit: 5048435), (write_miss: 83360), (write_hit: 0)
+total_node : 50000, total_edge : 3000000
+node : 20818, pagerank : 0.0000292609
+node : 19896, pagerank : 0.0000289488
+node : 16679, pagerank : 0.0000288147
+node : 40915, pagerank : 0.0000285490
+node : 34932, pagerank : 0.0000285021
+node : 23590, pagerank : 0.0000284602
+node : 20102, pagerank : 0.0000284349
+node : 10639, pagerank : 0.0000284130
+node : 33844, pagerank : 0.0000283427
+node : 47943, pagerank : 0.0000283380
+end behind_thread
+behind_thread ended
+behind_thread ended
+behind_thread ended

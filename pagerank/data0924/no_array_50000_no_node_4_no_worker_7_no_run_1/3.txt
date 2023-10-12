@@ -1,0 +1,125 @@
+
+/home/xeg/last/gam/pagerank/pagerank --no_node 4 --no_array 50000 --ip_master 10.77.110.155 --ip_worker 10.77.110.155 --port_worker 5530 --is_master 1 --port_master 5732 --no_run 1 --is_read 1
+node 0 has 2 threads
+end get rdma source
+/home/xeg/last/gam/pagerank/pagerank --no_node 4 --no_array 50000 --ip_master 10.77.110.155 --ip_worker 10.77.110.158 --port_worker 5330 --is_master 0 --port_master 5732 --no_run 1 --is_read 1
+node 1 has 2 threads
+end get rdma source
+/home/xeg/last/gam/pagerank/pagerank --no_node 4 --no_array 50000 --ip_master 10.77.110.155 --ip_worker 10.77.110.159 --port_worker 5130 --is_master 0 --port_master 5732 --no_run 1 --is_read 1
+node 2 has 2 threads
+end get rdma source
+/home/xeg/last/gam/pagerank/pagerank --no_node 4 --no_array 50000 --ip_master 10.77.110.155 --ip_worker 10.77.110.160 --port_worker 4930 --is_master 0 --port_master 5732 --no_run 1 --is_read 1
+cur worker_port : 5530
+cur node_id : 1
+
+end get rdma source
+node 3 has 1 threads
+end get rdma source
+cur worker_port : 5330
+cur node_id : 2
+
+end get rdma source
+cur worker_port : 5130
+cur node_id : 3
+
+end get rdma source
+cur worker_port : 5520
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+start read_file
+cur worker_port : 4930
+cur node_id : 5
+
+worker i de id = 5 
+node_id = 4
+end get rdma source
+cur worker_port : 5320
+cur node_id : 6
+
+worker i de id = 2 
+worker i de id = 6 
+node_id = 2
+start read_file
+worker 4 got weight[0] : 281475044278272
+cur worker_port : 5120
+cur node_id : 7
+
+worker i de id = 3 
+worker i de id = 7 
+node_id = 3
+start read_file
+cur worker_port : 4920
+cur node_id : 8
+
+end get rdma source
+worker 2 got weight[0] : 281475044278272
+worker 6 got weight[0] : 281475044278272
+worker 3 got weight[0] : 281475044278272
+worker 7 got weight[0] : 281475044278272
+cur worker_port : 4910
+cur node_id : 9
+
+start read_file
+worker 9 got weight[0] : 281475044278272
+worker 5 got weight[0] : 281475044278272
+worker 8 got weight[0] : 281475044278272
+node 4 finish first sync
+start behind_thread
+node 4 finish first sync
+node 1 finish first sync
+Start : 21427, End : 28568
+node 1 finish first sync
+Start : 28569, End : 35710
+node 4 finish first sync
+start behind_thread
+node 2 finish first sync
+node 2 finish first sync
+node 3 finish first sync
+Start : 42853, End : 50000
+node 3 finish first sync
+round 1 error : 0.08840
+round 2 error : 0.01092
+round 3 error : 0.00246
+round 4 error : 0.00154
+round 5 error : 0.00147
+round 6 error : 0.00146
+round 7 error : 0.00145
+round 8 error : 0.00145
+round 9 error : 0.00144
+round 10 error : 0.00144
+round 11 error : 0.00144
+round 12 error : 0.00143
+round 13 error : 0.00143
+round 14 error : 0.00143
+round 15 error : 0.00143
+round 16 error : 0.00143
+round 17 error : 0.00143
+round 18 error : 0.00143
+round 19 error : 0.00143
+round 20 error : 0.00142
+worker[1] : (read_miss: 49744), (read_hit: 8664816), (write_miss: 2399), (write_hit: 140481)
+running time : 13934181564
+worker[4] : (read_miss: 384820), (read_hit: 8328500), (write_miss: 2775), (write_hit: 140105)
+worker[3] : (read_miss: 475573), (read_hit: 8255587), (write_miss: 2875), (write_hit: 140005)
+worker[7] : (read_miss: 442128), (read_hit: 8264252), (write_miss: 2846), (write_hit: 140154)
+worker[5] : (read_miss: 477024), (read_hit: 8228316), (write_miss: 2870), (write_hit: 140010)
+Start : 7143, End : 14284
+worker[6] : (read_miss: 849115), (read_hit: 7860425), (write_miss: 3388), (write_hit: 139492)
+worker[2] : (read_miss: 432132), (read_hit: 8288688), (write_miss: 2839), (write_hit: 140041)
+total_node : 50000, total_edge : 3000000
+node : 20818, pagerank : 0.0000292608
+node : 19896, pagerank : 0.0000289487
+node : 16679, pagerank : 0.0000288146
+node : 40915, pagerank : 0.0000285489
+node : 34932, pagerank : 0.0000285020
+node : 23590, pagerank : 0.0000284595
+node : 20102, pagerank : 0.0000284348
+node : 10639, pagerank : 0.0000284121
+node : 33844, pagerank : 0.0000283426
+node : 47943, pagerank : 0.0000283380
+end behind_thread
+behind_thread ended
+behind_thread ended

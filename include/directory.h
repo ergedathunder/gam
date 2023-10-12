@@ -361,7 +361,9 @@ public:
         CurEntry->owner = Owner;
         dir[CurStart] = CurEntry;
         CurEntry->MySize = CurSize;
+#ifdef DYNAMIC
         CurEntry->MetaVersion = 1;
+#endif
       }
     }
     else entry->MySize = BLOCK_SIZE;
