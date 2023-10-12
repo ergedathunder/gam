@@ -28,28 +28,35 @@ class WorkerHandle
 #endif
 public:
   /* add xmx add */
-  uint64_t getTransferredBytes() const {
+  uint64_t getTransferredBytes() const
+  {
     return worker->getTransferredBytes();
   }
-  uint64_t getracetime() const {
+  uint64_t getracetime() const
+  {
     return worker->getracetime();
   }
-  uint64_t getrequesttime() const {
+  uint64_t getrequesttime() const
+  {
     return worker->getrequesttime();
   }
 #ifdef B_I
-    uint64_t getreadmiss() const {
-      return worker->getreadmiss();
-    }
-    uint64_t getreadhit() const{
-      return worker->getreadhit();
-    }
-    uint64_t getwritemiss() const {
-      return worker->getwritemiss();
-    }
-    uint64_t getwritehit() const {
-      return worker->getwritehit();
-    }
+  uint64_t getreadmiss() const
+  {
+    return worker->getreadmiss();
+  }
+  uint64_t getreadhit() const
+  {
+    return worker->getreadhit();
+  }
+  uint64_t getwritemiss() const
+  {
+    return worker->getwritemiss();
+  }
+  uint64_t getwritehit() const
+  {
+    return worker->getwritehit();
+  }
 #endif
   /* add xmx add */
   WorkerHandle(Worker *w);
@@ -82,44 +89,50 @@ public:
     worker->releaseLock(id, addr);
   }
 
-  inline void readAll(GAddr addr, int size)
+  inline void readAll(GAddr addr, int size, bool not_only_write)
   {
-
     WorkRequest wr{};
     wr.op = InitAcquire;
     wr.wid = GetWorkerId();
     wr.flag = 0;
     wr.size = size;
     wr.addr = addr;
-    if (SendRequest(&wr))
+    if (not_only_write)
     {
-      epicLog(LOG_WARNING, "send request failed");
+      if (SendRequest(&wr))
+      {
+        epicLog(LOG_WARNING, "send request failed");
+      }
+    }
+    else
+    {
+      worker->CreateCache(&wr, RC_WRITE_SHARED);
     }
   }
 
   inline void acquireLock(int id, GAddr addr, int size, bool flag, int flush_size)
   {
-    worker->flush_size[id] = flush_size;
-    // worker->flush_size[id] = 0;
-
     if (GetWorkerId() == WID(addr))
     {
       epicLog(LOG_DEBUG, "this is master, no need to acquire lock");
       return;
     }
-    if (flag == true)
-    {
-      readAll(addr, size);
-    }
-    epicAssert(GetWorkerId() != WID(addr));
+    readAll(addr, size, flag);
 
-    epicLog(LOG_DEBUG, "read all done,workerid=%d,isAcquired=%d", GetWorkerId(), worker->is_acquired[id].load());
-
+#ifdef RC_VERSION2
+    return;
+#else
+    worker->flush_size[id] = flush_size;
     worker->acquireLock(id, addr, size);
+#endif
   }
 
   void ReportCacheStatistics();
+  void ReportCacheStatistics_RC();
   void ResetCacheStatistics();
+  void ResetCacheStatistics_RC();
+  std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> getReadWriteMiss() const;
+  std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> getReadWriteMiss_RC() const;
 
   ~WorkerHandle();
 };

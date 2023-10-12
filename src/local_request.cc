@@ -394,21 +394,20 @@ int Worker::ProcessLocalFlushToHome(WorkRequest *wr)
 
 int Worker::ProcessLocalInitAcquire(WorkRequest *wr)
 {
-  epicAssert(InitAcquire == wr->op);
   int newcline = 0;
-  GAddr start_blk = TOBLOCK(wr->addr);//if addr=0, start_blk=0
-  GAddr end = GADD(wr->addr, wr->size);//if size=1024,end=1024
-  GAddr end_blk = TOBLOCK(end - 1);//if size=1024,end_blk=512
+  GAddr start_blk = TOBLOCK(wr->addr);  // if addr=0, start_blk=0
+  GAddr end = GADD(wr->addr, wr->size); // if size=1024,end=1024
+  GAddr end_blk = TOBLOCK(end - 1);     // if size=1024,end_blk=512
 
   Client *cli = GetClient(wr->addr);
   GAddr start = wr->addr;
 
   wr->lock();
 
-  for (GAddr i = start_blk; i < end;)//start_blk=0,end=1024
+  for (GAddr i = start_blk; i < end;) // start_blk=0,end=1024
   {
-    GAddr nextb = BADD(i, 1);//nextb=512
-    
+    GAddr nextb = BADD(i, 1); // nextb=512
+
     cache.lock(i);
     CacheLine *cline = nullptr;
 
@@ -429,6 +428,7 @@ int Worker::ProcessLocalInitAcquire(WorkRequest *wr)
 
     cache.unlock(i);
     i = nextb;
+    read_rc_miss++;
   }
 
   wr->unlock();

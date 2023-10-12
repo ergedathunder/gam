@@ -1,0 +1,3 @@
+nbody_onethread.cc 是单机单worker的版本
+nbody.cc 是单机多worker的版本
+nbody-926.cc 是临时文件，下一步要修改并行化的逻辑

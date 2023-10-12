@@ -956,6 +956,8 @@ int Worker::FlushToHome(int workId, void *dest, void *src, int size, int id)
 
 int Worker::releaseLock(int id, GAddr addr)
 {
+ #ifdef RC_VERSION2
+#else
   epicLog(LOG_DEBUG, "release lock");
   while (to_flush_list[id]->empty() == false)
   {
@@ -964,18 +966,20 @@ int Worker::releaseLock(int id, GAddr addr)
   }
   epicLog(LOG_DEBUG, "this_id = %ld,release is done", std::this_thread::get_id());
   flush_done[id] = true;
+
   while (is_acquired[id].load() == true)
   {
     sleep(0.01);
     epicLog(LOG_DEBUG, "is_acquired[id].load() == true");
   }
-
+#endif
   return 0;
 }
 
 int Worker::ConsumerToFlushList()
 {
-  // 检测to flush list 队列中是否有元素
+#ifdef RC_VERSION2
+#else
   int id = 1;
   while (true)
   {
@@ -997,7 +1001,6 @@ int Worker::ConsumerToFlushList()
       to_flush_list[id]->pop(addr);
       int size = flush_size[id];
       epicLog(LOG_DEBUG, "flush addr = %lx, size = %d,work_id = %d", addr, size, GetWorkerId());
-      // printf("flush addr = %lx, size = %d,work_id = %d\n", addr, size, GetWorkerId());
 
       int home_id = WID(addr);
       GAddr home_addr = EMPTY_GLOB(home_id);
@@ -1009,21 +1012,20 @@ int Worker::ConsumerToFlushList()
       FlushToHome(home_id, dest, src, size, id);
     }
   }
+#endif
   return 0;
 }
 
 int Worker::acquireLock(int id, GAddr addr, int size)
 {
+#ifdef RC_VERSION2
+#else
   epicAssert(is_acquired[id] == false);
-  epicLog(LOG_DEBUG, "acquire lock,id=%d", id);
   is_acquired[id] = true;
   flush_done[id] = false;
-
-  // std::thread t1(&Worker::ConsumerToFlushList, this, id);
   std::thread t1(&Worker::ConsumerToFlushList, this);
-
   t1.detach();
-
+#endif
   return 0;
 }
 

@@ -7,6 +7,8 @@
 #include "slabs.h"
 #include "kernel.h"
 
+#include "structure.h"
+
 int Cache::ReadWrite(WorkRequest *wr)
 {
   epicLog(LOG_DEBUG, "op=%d, addr=%lx, size=%d", wr->op, wr->addr, wr->size);
@@ -43,7 +45,7 @@ int Cache::ReadWrite(WorkRequest *wr)
 
     GAddr nextb = BADD(i, 1);
     /* add ergeda add */
-    bool breakflag = 0; //循环内还有循环枚举子块，用于判断是否需要跳出循环(好像并没用)
+    bool breakflag = 0; // 循环内还有循环枚举子块，用于判断是否需要跳出循环(好像并没用)
     worker->directory.lock((void *)i);
     DirEntry *Entry = worker->directory.GetEntry((void *)i);
     if (Entry == nullptr)
@@ -445,108 +447,127 @@ int Cache::ReadWrite(WorkRequest *wr)
     /* add ergeda add */
 /* add xmx add */
 #ifdef SUB_BLOCK
-    else if (Cur_Dstate == DataState::WRITE_SHARED) {
-      int CurSize = Entry->MySize; //拿到现在的目录大小
-      nextb = i + CurSize; //修改nextb的大小
-      if (nextb <= start) { //还没到
-        worker->directory.unlock((void*)i);
+    else if (Cur_Dstate == DataState::WRITE_SHARED)
+    {
+      int CurSize = Entry->MySize; // 拿到现在的目录大小
+      nextb = i + CurSize;         // 修改nextb的大小
+      if (nextb <= start)
+      { // 还没到
+        worker->directory.unlock((void *)i);
         i = nextb;
         continue;
       }
 
       lock(i);
-      CacheLine* cline = nullptr;
+      CacheLine *cline = nullptr;
       cline = GetSubCline(i);
 
       CacheState state = CACHE_INVALID;
-      if (cline) state = cline->state;
-      if (state != CACHE_INVALID) { //原本存在cache
-        if (state == CACHE_TO_INVALID && READ == wr->op) {
+      if (cline)
+        state = cline->state;
+      if (state != CACHE_INVALID)
+      { // 原本存在cache
+        if (state == CACHE_TO_INVALID && READ == wr->op)
+        {
+          worker->read_SorM++;
           epicLog(LOG_INFO, "cache is going to be invalid, but still usable for read op = %d", wr->op);
           GAddr gs = i > start ? i : start;
           epicAssert(GMINUS(nextb, gs) > 0);
-          void* cs = (void*) ((ptr_t) cline->line + GMINUS(gs, i));
-          void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+          void *cs = (void *)((ptr_t)cline->line + GMINUS(gs, i));
+          void *ls = (void *)((ptr_t)wr->ptr + GMINUS(gs, start));
           int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
           memcpy(ls, cs, len);
           unlock(i);
-          worker->directory.unlock((void*)i);
+          worker->directory.unlock((void *)i);
           i = nextb;
           continue;
         }
 
-        //special processing when cache is in process of to_to_dirty
-        //for WRITE, cannot allow since it may dirty the cacheline before
-        //it finished transmission
-        if (state == CACHE_TO_DIRTY && READ == wr->op && IsBlockLocked(cline)) {
+        // special processing when cache is in process of to_to_dirty
+        // for WRITE, cannot allow since it may dirty the cacheline before
+        // it finished transmission
+        if (state == CACHE_TO_DIRTY && READ == wr->op && IsBlockLocked(cline))
+        {
+          worker->read_SorM++;
           epicAssert(!IsBlockWLocked(cline));
           epicLog(
               LOG_INFO, "cache is going from shared to dirty, but still usable for read op = %d", wr->op);
           GAddr gs = i > start ? i : start;
           epicAssert(GMINUS(nextb, gs) > 0);
-          void* cs = (void*) ((ptr_t) cline->line + GMINUS(gs, i));
-          void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+          void *cs = (void *)((ptr_t)cline->line + GMINUS(gs, i));
+          void *ls = (void *)((ptr_t)wr->ptr + GMINUS(gs, start));
           int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
           memcpy(ls, cs, len);
           unlock(i);
-          worker->directory.unlock((void*)i);
+          worker->directory.unlock((void *)i);
           i = nextb;
           continue;
         }
 
-        if (unlikely(InTransitionState(state))) {
+        if (unlikely(InTransitionState(state)))
+        {
           epicLog(LOG_INFO, "in transition state while cache read/write(%d)", wr->op);
-          //we increase the counter in case
-          //we false call Notify()
+          // we increase the counter in case
+          // we false call Notify()
           wr->counter++;
           wr->unlock();
-          if (wr->flag & ASYNC) {
-            if (!wr->IsACopy()) {
-              //wr->unlock();
+          if (wr->flag & ASYNC)
+          {
+            if (!wr->IsACopy())
+            {
+              // wr->unlock();
               wr = wr->Copy();
-              //wr->lock();
+              // wr->lock();
             }
           }
-          //worker->to_serve_local_requests[i].push(wr);
+          // worker->to_serve_local_requests[i].push(wr);
           worker->AddToServeLocalRequest(i, wr);
           unlock(i);
-          worker->directory.unlock((void*)i);
-          //wr->unlock();
+          worker->directory.unlock((void *)i);
+          // wr->unlock();
           return 1;
         }
         epicAssert(state == CACHE_SHARED || state == CACHE_DIRTY);
 
         GAddr gs = i > start ? i : start;
         epicAssert(GMINUS(nextb, gs) > 0);
-        void* cs = (void*) ((ptr_t) cline->line + GMINUS(gs, i));
-        void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+        void *cs = (void *)((ptr_t)cline->line + GMINUS(gs, i));
+        void *ls = (void *)((ptr_t)wr->ptr + GMINUS(gs, start));
         int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
-        //this line is either shared in shared-only or dirty mode
-        //we can copy the data immediately since it will not be over-written by remote node
-        //and also allow following read ops get the latest data
-        if (READ == wr->op) {
+        // this line is either shared in shared-only or dirty mode
+        // we can copy the data immediately since it will not be over-written by remote node
+        // and also allow following read ops get the latest data
+        if (READ == wr->op)
+        {
+          worker->read_SorM++;
           memcpy(ls, cs, len);
-  /*
-  #ifdef USE_LRU
-          UnLinkLRU(cline);
-          LinkLRU(cline);
-  #endif
-  */
-        } else if (WRITE == wr->op) {
-          if (state != CACHE_DIRTY) {
+          /*
+          #ifdef USE_LRU
+                  UnLinkLRU(cline);
+                  LinkLRU(cline);
+          #endif
+          */
+        }
+        else if (WRITE == wr->op)
+        {
+          if (state != CACHE_DIRTY)
+          {
+            worker->write_IorS++;
             wr->is_cache_hit_ = false;
-            WorkRequest* lwr = new WorkRequest(*wr);
+            WorkRequest *lwr = new WorkRequest(*wr);
             lwr->counter = 0;
             lwr->op = WRITE_PERMISSION_ONLY;
             lwr->flag |= CACHED;
             lwr->addr = i;
-            lwr->size = CurSize; //different
+            lwr->size = CurSize; // different
             lwr->ptr = cline->line;
 #ifdef DYNAMIC
             lwr->Version = Entry->MetaVersion;
 #endif
-            if (wr->flag & ASYNC) {
-              if (!wr->IsACopy()) {
+            if (wr->flag & ASYNC)
+            {
+              if (!wr->IsACopy())
+              {
                 wr->unlock();
                 wr = wr->Copy();
                 wr->lock();
@@ -554,35 +575,42 @@ int Cache::ReadWrite(WorkRequest *wr)
             }
             lwr->parent = wr;
             wr->counter++;
-            //to intermediate state
+            // to intermediate state
             epicAssert(state != CACHE_TO_DIRTY);
             ToToDirty(cline);
-/*
-  #ifdef USE_LRU
-            UnLinkLRU(cline);
-  #endif
-*/
+            /*
+              #ifdef USE_LRU
+                        UnLinkLRU(cline);
+              #endif
+            */
             worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
-          } else {
-              epicAssert(len);
-              worker->logWrite(wr->addr, len, ls);
-              memcpy(cs, ls, len);
-  /*
-  #ifdef USE_LRU
-            UnLinkLRU(cline);
-            LinkLRU(cline);
-  #endif
-  */
           }
-        } else {
+          else
+          {
+            worker->write_M++;
+            epicAssert(len);
+            worker->logWrite(wr->addr, len, ls);
+            memcpy(cs, ls, len);
+            /*
+            #ifdef USE_LRU
+                      UnLinkLRU(cline);
+                      LinkLRU(cline);
+            #endif
+            */
+          }
+        }
+        else
+        {
           epicLog(LOG_WARNING, "unknown op in cache operations %d", wr->op);
           epicAssert(false);
         }
-      } else { //不存在子块
-        //worker->Just_for_test("cache invalid", wr);
-        WorkRequest* lwr = new WorkRequest(*wr);
-  
-        //newcline++;
+      }
+      else
+      { // 不存在子块
+        // worker->Just_for_test("cache invalid", wr);
+        WorkRequest *lwr = new WorkRequest(*wr);
+
+        // newcline++;
         cline = SetSubline(i, CurSize);
         lwr->counter = 0;
         lwr->flag |= CACHED;
@@ -590,8 +618,10 @@ int Cache::ReadWrite(WorkRequest *wr)
         lwr->size = CurSize;
         lwr->ptr = cline->line;
         wr->is_cache_hit_ = false;
-        if (wr->flag & ASYNC) {
-          if (!wr->IsACopy()) {
+        if (wr->flag & ASYNC)
+        {
+          if (!wr->IsACopy())
+          {
             wr->unlock();
             wr = wr->Copy();
             wr->lock();
@@ -602,37 +632,46 @@ int Cache::ReadWrite(WorkRequest *wr)
         lwr->Version = Entry->MetaVersion;
 #endif
         wr->counter++;
-        //to intermediate state
-        if (READ == wr->op) {
+        // to intermediate state
+        if (READ == wr->op)
+        {
+          worker->read_I++;
           epicAssert(cline->state != CACHE_TO_SHARED);
           ToToShared(cline);
-        } else {  //WRITE
+        }
+        else
+        { // WRITE
+          worker->write_IorS++;
           epicAssert(cline->state != CACHE_TO_DIRTY);
           ToToDirty(cline);
         }
         worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
       }
       unlock(i);
-      worker->directory.unlock((void*)i);
+      worker->directory.unlock((void *)i);
       i = nextb;
       continue;
     }
 #endif
 #ifdef B_I
-    else if (Cur_Dstate == DataState::BI) {
+    else if (Cur_Dstate == DataState::BI)
+    {
 
-      worker->directory.unlock((void*)i);
+      worker->directory.unlock((void *)i);
 
       GAddr gs = i > start ? i : start;
       epicAssert(GMINUS(nextb, gs) > 0);
-      void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
+      void *ls = (void *)((ptr_t)wr->ptr + GMINUS(gs, start));
       int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
 
-      if (WRITE == wr->op) {
+      if (WRITE == wr->op)
+      {
         worker->write_miss += 1;
-        WorkRequest* lwr = new WorkRequest(*wr);
-        if (wr->flag & ASYNC) {
-          if (!wr->IsACopy()) {
+        WorkRequest *lwr = new WorkRequest(*wr);
+        if (wr->flag & ASYNC)
+        {
+          if (!wr->IsACopy())
+          {
             wr->unlock();
             wr = wr->Copy();
             wr->lock();
@@ -642,7 +681,7 @@ int Cache::ReadWrite(WorkRequest *wr)
         wr->counter++;
 
         char buf[BLOCK_SIZE];
-        
+
         memcpy(buf, ls, len);
 
         lwr->parent = wr;
@@ -653,29 +692,33 @@ int Cache::ReadWrite(WorkRequest *wr)
         lwr->size = len;
 
         worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
-        
+
         i = nextb;
         continue;
       }
 
       lock(i);
-      CacheLine * cline = nullptr;
+      CacheLine *cline = nullptr;
       cline = GetCLine(i);
       CacheState Curs = CACHE_INVALID;
-      if (cline) Curs = cline->state;
-      //below are read option
-      if (Curs != CACHE_INVALID) { //TODO: && GMINUS(get_time(), cline->timestamp) < max_timediff
+      if (cline)
+        Curs = cline->state;
+      // below are read option
+      if (Curs != CACHE_INVALID)
+      { // TODO: && GMINUS(get_time(), cline->timestamp) < max_timediff
         worker->read_hit += 1;
-        void* cs = (void*) ((ptr_t) cline->line + GMINUS(gs, i));
+        void *cs = (void *)((ptr_t)cline->line + GMINUS(gs, i));
         MyAssert(wr->op == READ);
         // 这里是否需要添加辅助判断：若过期时间过长，则也将其无效。
         memcpy(ls, cs, len);
       }
-      else { //no cache
+      else
+      { // no cache
         worker->read_miss += 1;
-        if (cline == nullptr) cline = SetCLine(i);
+        if (cline == nullptr)
+          cline = SetCLine(i);
         cline->state = CACHE_INVALID;
-        WorkRequest* lwr = new WorkRequest(*wr);
+        WorkRequest *lwr = new WorkRequest(*wr);
         wr->is_cache_hit_ = false;
         wr->counter++;
         lwr->parent = wr;
@@ -697,58 +740,80 @@ int Cache::ReadWrite(WorkRequest *wr)
 #endif
     else if (Cur_Dstate == DataState::RC_WRITE_SHARED)
     {
-      epicLog(LOG_DEBUG, "RC_WRITE_SHARED, GetWorkerId=%d\n", worker->GetWorkerId());
-
-      int offset = wr->addr - TOBLOCK(wr->addr);
-
       CacheLine *cline = nullptr;
       lock(i);
       if (cline = GetCLine(i))
       {
         epicLog(LOG_DEBUG, "GetCLine SUCCESS,i=%lx\n", i);
+        GAddr gs = i > start ? i : start;
+        epicAssert(GMINUS(nextb, gs) > 0);
+        void *cs = (void *)((ptr_t)cline->line + GMINUS(gs, i));
+        void *ls = (void *)((ptr_t)wr->ptr + GMINUS(gs, start));
+        int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
+
+        if (wr->op == READ)
+        {
+          memcpy(ls, cs, len);
+          worker->read_rc_hit++;
+        }
+
+        else if (wr->op == WRITE)
+        {
+          memcpy(cs, ls, len);
+          worker->write_rc_hit++;
+
+#ifdef RC_VERSION2
+          Client *cli = worker->GetClient(wr->addr);
+#ifdef RC_VERSION2_add1
+          wr->flag |= RC_Write_Cache;
+          cli->WriteWithImm(cli->ToLocal(wr->addr + GMINUS(gs, start)), cs, len, wr->id);
+#else
+          cli->Write(cli->ToLocal(wr->addr + GMINUS(gs, start)), cs, len);
+#endif
+#else
+          if (wr->flush_id.load() > 0 && wr->flush_id.load() < 10)
+          {
+            worker->AddToFlushList(wr->flush_id.load(), wr->addr);
+          }
+#endif
+        }
+        unlock(i);
+        i = nextb;
+        continue;
       }
       else
       {
+        printf("shoud not get here!\n");
         cline = SetCLine(i);
-        epicLog(LOG_DEBUG, "GetCLine Failure,i=%lx,cline->addr=%lx,cline->line=%lx\n,workid=%d",
-                i, cline->addr, cline->line, worker->GetWorkerId());
+
+#ifdef RC_VERSION2
+        WorkRequest *lwr = new WorkRequest(*wr);
+        lwr->op = RC_READ;
+        lwr->counter = 0;
+        lwr->addr = i;
+        lwr->size = BLOCK_SIZE;
+        lwr->ptr = cline->line;
+        if (wr->flag & ASYNC)
+        {
+          if (!wr->IsACopy())
+          {
+            wr->unlock();
+            wr = wr->Copy();
+            wr->lock();
+          }
+        }
+        lwr->parent = wr;
+        wr->counter++;
+        worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
+#else
+#endif
       }
-
-      GAddr gs = i > start ? i : start;
-      epicAssert(GMINUS(nextb, gs) > 0);
-      void *cs = (void *)((ptr_t)cline->line + GMINUS(gs, i));
-      void *ls = (void *)((ptr_t)wr->ptr + GMINUS(gs, start));
-      int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
-      if (wr->op == READ)
-      {
-        memcpy(ls, cs, len);
-      }
-
-      else if (wr->op == WRITE)
-      {
-        memcpy(cs, ls, len);
-      }
-
-      epicLog(LOG_DEBUG, "wr->op=%d,offset=%d,cs= %lx, ls = %lx\n",
-              wr->op, offset, cs, ls);
-
-      unlock(i);
-      i = nextb;
-      epicLog(LOG_DEBUG, "wr->flush_id.load()=%d\n", wr->flush_id.load());
-
-      if (wr->flush_id.load() > 0 && wr->flush_id.load() < 10 && wr->op == WRITE)
-      {
-        
-        // printf("call AddToFlushList, flush_id=%d, addr=%lx\n", wr->flush_id.load(), wr->addr);
-        worker->AddToFlushList(wr->flush_id.load(), wr->addr);
-      }
-
-      continue;
     }
     lock(i);
     CacheLine *cline = nullptr;
     if ((cline = GetCLine(i)))
     {
+
       worker->no_cache_exist_++;
       CacheState state = cline->state;
       // FIXME: may violate the ordering guarantee of single thread
@@ -757,6 +822,7 @@ int Cache::ReadWrite(WorkRequest *wr)
       // it finished transmission
       if (state == CACHE_TO_INVALID && READ == wr->op)
       {
+        worker->read_SorM++;
 #ifdef B_I
         worker->read_hit += 1;
 #endif
@@ -778,6 +844,7 @@ int Cache::ReadWrite(WorkRequest *wr)
       // it finished transmission
       if (state == CACHE_TO_DIRTY && READ == wr->op && IsBlockLocked(cline))
       {
+        worker->read_SorM++;
 #ifdef B_I
         worker->read_hit += 1;
 #endif
@@ -851,6 +918,7 @@ int Cache::ReadWrite(WorkRequest *wr)
       // and also allow following read ops get the latest data
       if (READ == wr->op)
       {
+        worker->read_SorM++;
 #ifdef SELECTIVE_CACHING
         cline->nread++;
         nread++;
@@ -873,8 +941,9 @@ int Cache::ReadWrite(WorkRequest *wr)
 #endif
         if (state != CACHE_DIRTY)
         {
+          worker->write_IorS++;
 #ifdef B_I
-        worker->write_miss += 1;
+          worker->write_miss += 1;
 #endif
           worker->no_cache_state_shared_++;
           epicAssert(state == CACHE_SHARED);
@@ -971,6 +1040,7 @@ int Cache::ReadWrite(WorkRequest *wr)
             epicAssert(len);
             worker->logWrite(wr->addr, len, ls);
             memcpy(cs, ls, len);
+            worker->write_M++;
 #ifdef B_I
             worker->write_hit += 1;
 #endif
@@ -1046,6 +1116,7 @@ int Cache::ReadWrite(WorkRequest *wr)
       // to intermediate state
       if (READ == wr->op)
       {
+        worker->read_I++;
 #ifdef B_I
         worker->read_miss += 1;
 #endif
@@ -1066,6 +1137,7 @@ int Cache::ReadWrite(WorkRequest *wr)
       }
       else
       { // WRITE
+        worker->write_IorS++;
 #ifdef B_I
         worker->write_miss += 1;
 #endif
@@ -1769,7 +1841,7 @@ void Cache::ToInvalid(CacheLine *cline)
 #endif
   void *line = cline->line;
   worker->sb.sb_free((char *)line - CACHE_LINE_PREFIX);
- #ifdef SUB_BLOCK
+#ifdef SUB_BLOCK
   used_bytes -= (cline->CacheSize + CACHE_LINE_PREFIX);
 #else
   used_bytes -= (BLOCK_SIZE + CACHE_LINE_PREFIX);

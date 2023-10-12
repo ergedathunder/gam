@@ -1,15 +1,9 @@
-//
-// Created by hrh on 1/4/23.
-//
-#include <iostream>
 #include <gflags/gflags.h>
 
-// GAM
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <iostream>
 #include <thread>
 #include <pthread.h>
 #include <complex>
@@ -37,17 +31,19 @@ WorkerHandle *malloc_wh;
 WorkerHandle *wh[10];
 
 // 可以改
-int length = 1 << 6;
+int length_log2 = 0;
+int length = 1 << length_log2;
 #define N length
 float fs = 1000;   // 采样频率
 float dt = 1 / fs; // 采样间隔（周期）
 int iteration_times = 1;
 int no_run = 1;
 int parrallel_num = 2;
+Conf *conf;
 
 void Create_master()
 {
-    Conf *conf = new Conf();
+    conf = new Conf();
     // conf->loglevel = LOG_DEBUG;
     conf->loglevel = LOG_TEST;
     GAllocFactory::SetConf(conf);
@@ -56,7 +52,7 @@ void Create_master()
 
 void Create_worker()
 {
-    Conf *conf = new Conf();
+    // Conf *conf = new Conf();
     RdmaResource *res = new RdmaResource(curlist[0], false);
     conf->worker_port += num_worker;
     worker[num_worker] = new Worker(*conf, res);
@@ -143,6 +139,7 @@ void sub_fft(WorkerHandle *Cur_wh, GAddr addr_value, unsigned int n, unsigned in
     for (unsigned int a = l; a < N; a += n)
     {
         // a表示每一组的元素的下标，n表示跨度,k表示组数,l表示每一组的首个元素的下标
+
         unsigned int b = a + k;
         Complex xa, xb;
         Read_val(Cur_wh, addr_value + a * sizeof(complex<float>), (int *)&xa, sizeof(complex<float>));
@@ -185,7 +182,6 @@ void p_fft_RC(GAddr addr_value)
 
         for (unsigned int l = 0; l < k; l++)
         {
-
             // l表示每一组的首个元素的下标
             int id = l % parrallel_num;
             threads[id] = thread(sub_fft, wh[id], addr_value, n, l, k, T);
@@ -193,11 +189,11 @@ void p_fft_RC(GAddr addr_value)
 
             T *= phiT;
         }
-
+#ifdef RC_VERSION2
+#else
         for (int i = 0; i < parrallel_num; i++)
             wh[i]->releaseLock(1, addr_value);
-
-
+#endif
     }
 
     // Decimate
@@ -238,7 +234,7 @@ void p_fft_MSI(GAddr addr_value)
     thread threads[parrallel_num];
 
     while (k > 1)
-    // while (k > N / 2)
+    // while (k > N / 4)
     {
         // k=64,32,16,8,4,2,1 ，表示组数
         printf("k = %d\n", k);
@@ -253,14 +249,12 @@ void p_fft_MSI(GAddr addr_value)
 
         for (unsigned int l = 0; l < k; l++)
         {
-
             // l表示每一组的首个元素的下标
             int id = l % parrallel_num;
             threads[id] = thread(sub_fft, wh[id], addr_value, n, l, k, T);
             // threads[id - 1] = thread(test);
             threads[id].join();
-
-            T *= phiT;
+            // T *= phiT;
         }
     }
 
@@ -366,7 +360,6 @@ void Solve_MSI()
         wh[i]->ReportCacheStatistics();
 }
 
-
 void Solve_WS()
 {
     malloc_wh = wh[0];
@@ -404,13 +397,19 @@ void Solve_WS()
 
 int main(int argc, char *argv[])
 {
-    iteration_times = atoi(argv[1]);
+    iteration_times = 1;
+
+    length_log2 = atoi(argv[1]);
+    length = 1 << length_log2;
     no_run = atoi(argv[2]);
+    parrallel_num = atoi(argv[3]);
     srand(time(NULL));
     curlist = ibv_get_device_list(NULL);
     Create_master();
-    for (int i = 0; i < parrallel_num + 2; ++i)
+    for (int i = 0; i < parrallel_num; ++i)
         Create_worker();
+
+
     if (no_run == 1)
     {
         Solve_MSI();

@@ -62,15 +62,14 @@ public:
    * Generally, write is non-blocking as we're using release memory consistency model
    */
 
-
-  int Write(const GAddr addr, void *buf, const Size count, int flush_id=0, Flag flag = 0);
+  int Write(const GAddr addr, void *buf, const Size count, int flush_id = 0, Flag flag = 0);
 #ifdef GFUNC_SUPPORT
-  int Write(const GAddr addr, const Size offset, void *buf, const Size count, int flush_id=0,
+  int Write(const GAddr addr, const Size offset, void *buf, const Size count, int flush_id = 0,
             Flag flag = 0, GFunc *func = nullptr, uint64_t arg = 0);
-  int Write(const GAddr addr, void *buf, const Size count,  GFunc *func,int flush_id=0,
+  int Write(const GAddr addr, void *buf, const Size count, GFunc *func, int flush_id = 0,
             uint64_t arg = 0, Flag flag = 0);
 #else
-  int Write(const GAddr addr, const Size offset, void *buf, const Size count, int flush_id=0, Flag flag = 0);
+  int Write(const GAddr addr, const Size offset, void *buf, const Size count, int flush_id = 0, Flag flag = 0);
 #endif
 
   void MFence();
@@ -129,9 +128,29 @@ public:
     wh->ReportCacheStatistics();
   }
 
+  void ReportCacheStatistics_RC()
+  {
+    wh->ReportCacheStatistics_RC();
+  }
+
   void ResetCacheStatistics()
   {
     wh->ResetCacheStatistics();
+  }
+
+  void ResetCacheStatistics_RC()
+  {
+    wh->ResetCacheStatistics_RC();
+  }
+
+  std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> getReadWriteMiss() const
+  {
+    return wh->getReadWriteMiss();
+  }
+
+  std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> getReadWriteMiss_RC() const
+  {
+    return wh->getReadWriteMiss_RC();
   }
 
   ~GAlloc();

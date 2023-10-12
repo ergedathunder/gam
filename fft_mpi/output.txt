@@ -1,0 +1,309 @@
+
+node_id=1
+node 0 has 1 threads
+node 1 has 1 threads
+node 2 has 1 threads
+end get rdma source
+node_id=2
+node 0 has 1 threads
+node 1 has 1 threads
+node 2 has 1 threads
+end get rdma source
+node_id=3
+node 0 has 1 threads
+node 1 has 1 threads
+node 2 has 1 threads
+end get rdma source
+end get new worker
+end get new workerhandler
+cur worker_port : 70129
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+node 1 thread 0 put key 204803
+end get new worker
+end get new workerhandler
+cur worker_port : 69129
+cur node_id : 2
+
+worker i de id = 2 
+node_id = 2
+node 2 thread 0 put key 204806
+end get new worker
+end get new workerhandler
+cur worker_port : 68129
+cur node_id : 3
+
+worker i de id = 3 
+node_id = 3
+node 3 thread 0 put key 204809
+node 1 get key 204803
+node 1 get key 204806
+node 1 get key 204809
+addr_value=10000013ff000
+node 1 thread 0 put key 204815
+node 2 get key 204803
+node 2 get key 204806
+node 2 get key 204809
+begin slave
+addr_value=10000013ff000
+node 2 thread 0 put key 204818
+node 3 get key 204803
+node 3 get key 204806
+node 3 get key 204809
+begin slave
+addr_value=10000013ff000
+node 3 thread 0 put key 204821
+node 3 get key 204815
+node 3 get key 204818
+node 3 get key 204821
+k = 128
+node 1 get key 204815
+node 1 get key 204818
+node 1 get key 204821
+k = 128
+node 2 get key 204815
+node 2 get key 204818
+node 2 get key 204821
+k = 128
+node 1 thread 0 put key 204827
+node 3 thread 0 put key 204833
+node 2 thread 0 put key 204830
+node 1 get key 204827
+node 1 get key 204830
+node 1 get key 204833
+k = 64
+node 3 get key 204827
+node 3 get key 204830
+node 3 get key 204833
+k = 64
+node 1 thread 0 put key 204839
+node 2 get key 204827
+node 2 get key 204830
+node 2 get key 204833
+k = 64
+node 3 thread 0 put key 204845
+node 2 thread 0 put key 204842
+node 1 get key 204839
+node 1 get key 204842
+node 1 get key 204845
+k = 32
+node 3 get key 204839
+node 3 get key 204842
+node 3 get key 204845
+k = 32
+node 2 get key 204839
+node 2 get key 204842
+node 2 get key 204845
+k = 32
+node 1 thread 0 put key 204851
+node 1 get key 204851
+node 1 get key 204854
+node 1 get key 204857
+k = 16
+node 2 thread 0 put key 204854
+node 3 thread 0 put key 204857
+node 1 thread 0 put key 204863
+node 2 get key 204851
+node 2 get key 204854
+node 2 get key 204857
+k = 16
+node 3 get key 204851
+node 3 get key 204854
+node 3 get key 204857
+k = 16
+node 2 thread 0 put key 204866
+node 1 get key 204863
+node 1 get key 204866
+node 1 get key 204869
+k = 8
+node 3 thread 0 put key 204869
+node 2 get key 204863
+node 2 get key 204866
+node 2 get key 204869
+k = 8
+node 1 thread 0 put key 204875
+node 3 get key 204863
+node 3 get key 204866
+node 3 get key 204869
+k = 8
+node 2 thread 0 put key 204878
+node 1 get key 204875
+node 1 get key 204878
+node 1 get key 204881
+k = 4
+node 3 thread 0 put key 204881
+node 1 thread 0 put key 204887
+node 2 get key 204875
+node 2 get key 204878
+node 2 get key 204881
+k = 4
+node 3 get key 204875
+node 3 get key 204878
+node 3 get key 204881
+k = 4
+node 3 thread 0 put key 204893
+node 2 thread 0 put key 204890
+node 1 get key 204887
+node 1 get key 204890
+node 1 get key 204893
+k = 2
+node 3 get key 204887
+node 3 get key 204890
+node 3 get key 204893
+k = 2
+node 2 get key 204887
+node 2 get key 204890
+node 2 get key 204893
+k = 2
+node 1 thread 0 put key 204899
+node 2 thread 0 put key 204902
+node 3 thread 0 put key 204905
+node 2 get key 204899
+node 2 get key 204902
+node 2 get key 204905
+read_hit: 270	read_miss: 7	write_hit: 270	write_miss: 0	
+read_miss_rate: 0.0252708
+write_miss_rate: 0
+node 3 get key 204899
+node 3 get key 204902
+node 3 get key 204905
+read_hit: 186	read_miss: 7	write_hit: 186	write_miss: 0	
+read_miss_rate: 0.0362694
+write_miss_rate: 0
+node 1 get key 204899
+node 1 get key 204902
+node 1 get key 204905
+running time : 4060516
+readbuf[0]=5.474446+0.000000i
+readbuf[1]=5.584552+-0.281507i
+readbuf[2]=5.948066+-0.598805i
+readbuf[3]=6.695525+-1.009104i
+readbuf[4]=8.216025+-1.648500i
+readbuf[5]=12.045368+-3.022704i
+readbuf[6]=35.120762+-10.640210i
+readbuf[7]=-18.523056+6.675331i
+readbuf[8]=-4.914906+2.140439i
+readbuf[9]=-1.545747+0.927636i
+readbuf[10]=0.243159+0.215418i
+readbuf[11]=1.665227+-0.405006i
+readbuf[12]=3.240667+-1.132385i
+readbuf[13]=5.634940+-2.262447i
+readbuf[14]=11.035530+-4.816302i
+readbuf[15]=45.250244+-20.934135i
+readbuf[16]=-27.028961+13.057153i
+readbuf[17]=-11.053324+5.517689i
+readbuf[18]=-7.134818+3.651109i
+readbuf[19]=-5.346962+2.786965i
+readbuf[20]=-4.317857+2.279882i
+readbuf[21]=-3.647130+1.941768i
+readbuf[22]=-3.174791+1.697398i
+readbuf[23]=-2.824127+1.510744i
+readbuf[24]=-2.553676+1.362252i
+readbuf[25]=-2.338969+1.240546i
+readbuf[26]=-2.164690+1.138353i
+readbuf[27]=-2.020532+1.050826i
+readbuf[28]=-1.899577+0.974671i
+readbuf[29]=-1.796824+0.907543i
+readbuf[30]=-1.708618+0.847692i
+readbuf[31]=-1.632210+0.793814i
+readbuf[32]=-1.565528+0.744806i
+readbuf[33]=-1.506952+0.700022i
+readbuf[34]=-1.455190+0.658774i
+readbuf[35]=-1.409213+0.620559i
+readbuf[36]=-1.368197+0.584951i
+readbuf[37]=-1.331470+0.551632i
+readbuf[38]=-1.298467+0.520307i
+readbuf[39]=-1.268717+0.490731i
+readbuf[40]=-1.241832+0.462686i
+readbuf[41]=-1.217496+0.436033i
+readbuf[42]=-1.195441+0.410605i
+readbuf[43]=-1.175383+0.386273i
+readbuf[44]=-1.157149+0.362912i
+readbuf[45]=-1.140564+0.340437i
+readbuf[46]=-1.125473+0.318757i
+readbuf[47]=-1.111734+0.297795i
+readbuf[48]=-1.099198+0.277427i
+readbuf[49]=-1.087955+0.257627i
+readbuf[50]=-1.077625+0.238410i
+readbuf[51]=-1.068310+0.219640i
+readbuf[52]=-1.059912+0.201280i
+readbuf[53]=-1.052375+0.183298i
+readbuf[54]=-1.045646+0.165649i
+readbuf[55]=-1.039669+0.148295i
+readbuf[56]=-1.034406+0.131189i
+readbuf[57]=-1.029831+0.114326i
+readbuf[58]=-1.026014+0.097616i
+readbuf[59]=-1.022722+0.081114i
+readbuf[60]=-1.020071+0.064733i
+readbuf[61]=-1.018034+0.048460i
+readbuf[62]=-1.016591+0.032268i
+readbuf[63]=-1.015726+0.016135i
+readbuf[64]=-1.015414+0.000000i
+readbuf[65]=-1.015703+-0.016119i
+readbuf[66]=-1.016572+-0.032263i
+readbuf[67]=-1.018021+-0.048458i
+readbuf[68]=-1.020056+-0.064735i
+readbuf[69]=-1.022701+-0.081117i
+readbuf[70]=-1.025967+-0.097632i
+readbuf[71]=-1.029862+-0.114308i
+readbuf[72]=-1.034411+-0.131186i
+readbuf[73]=-1.039662+-0.148284i
+readbuf[74]=-1.045648+-0.165651i
+readbuf[75]=-1.052375+-0.183300i
+readbuf[76]=-1.059909+-0.201284i
+readbuf[77]=-1.068305+-0.219643i
+readbuf[78]=-1.077621+-0.238418i
+readbuf[79]=-1.087915+-0.257655i
+readbuf[80]=-1.099221+-0.277412i
+readbuf[81]=-1.111738+-0.297796i
+readbuf[82]=-1.125472+-0.318752i
+readbuf[83]=-1.140566+-0.340434i
+readbuf[84]=-1.157149+-0.362911i
+readbuf[85]=-1.175383+-0.386268i
+readbuf[86]=-1.195439+-0.410605i
+readbuf[87]=-1.217510+-0.436030i
+readbuf[88]=-1.241832+-0.462682i
+readbuf[89]=-1.268708+-0.490703i
+readbuf[90]=-1.298480+-0.520331i
+readbuf[91]=-1.331478+-0.551639i
+readbuf[92]=-1.368204+-0.584958i
+readbuf[93]=-1.409222+-0.620560i
+readbuf[94]=-1.455206+-0.658779i
+readbuf[95]=-1.506978+-0.700021i
+readbuf[96]=-1.565528+-0.744806i
+readbuf[97]=-1.632207+-0.793760i
+readbuf[98]=-1.708607+-0.847667i
+readbuf[99]=-1.796818+-0.907530i
+readbuf[100]=-1.899567+-0.974662i
+readbuf[101]=-2.020522+-1.050811i
+readbuf[102]=-2.164665+-1.138339i
+readbuf[103]=-2.338997+-1.240550i
+readbuf[104]=-2.553678+-1.362252i
+readbuf[105]=-2.824131+-1.510694i
+readbuf[106]=-3.174790+-1.697397i
+readbuf[107]=-3.647134+-1.941769i
+readbuf[108]=-4.317858+-2.279890i
+readbuf[109]=-5.346975+-2.786952i
+readbuf[110]=-7.134837+-3.651133i
+readbuf[111]=-11.053350+-5.517733i
+readbuf[112]=-27.028984+-13.057167i
+readbuf[113]=45.250118+20.934101i
+readbuf[114]=11.035521+4.816328i
+readbuf[115]=5.634948+2.262452i
+readbuf[116]=3.240674+1.132391i
+readbuf[117]=1.665248+0.404974i
+readbuf[118]=0.243169+-0.215419i
+readbuf[119]=-1.545757+-0.927668i
+readbuf[120]=-4.914912+-2.140444i
+readbuf[121]=-18.523031+-6.675364i
+readbuf[122]=35.120842+10.640234i
+readbuf[123]=12.045421+3.022713i
+readbuf[124]=8.216062+1.648506i
+readbuf[125]=6.695556+1.009107i
+readbuf[126]=5.948095+0.598781i
+readbuf[127]=5.584581+0.281485i
+read_hit: 553	read_miss: 0	write_hit: 553	write_miss: 0	
+read_miss_rate: 0
+write_miss_rate: 0

@@ -1,0 +1,359 @@
+
+rm -rf gfunc_test benchmark example worker master example-r rw_test fence_test lock_test map_test *.o *.a *.so *.d
+g++ -std=c++11 -O3 -DNDEBUG gfunc.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o gfunc.o 
+g++ -std=c++11 -O3 -DNDEBUG ae.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o ae.o 
+g++ -std=c++11 -O3 -DNDEBUG client.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o client.o 
+g++ -std=c++11 -O3 -DNDEBUG server.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o server.o 
+g++ -std=c++11 -O3 -DNDEBUG worker.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o worker.o 
+g++ -std=c++11 -O3 -DNDEBUG gallocator.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o gallocator.o 
+g++ -std=c++11 -O3 -DNDEBUG master.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o master.o 
+g++ -std=c++11 -O3 -DNDEBUG tcp.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o tcp.o 
+g++ -std=c++11 -O3 -DNDEBUG worker_handle.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o worker_handle.o 
+g++ -std=c++11 -O3 -DNDEBUG anet.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o anet.o 
+g++ -std=c++11 -O3 -DNDEBUG rdma.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o rdma.o 
+g++ -std=c++11 -O3 -DNDEBUG util.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o util.o 
+g++ -std=c++11 -O3 -DNDEBUG zmalloc.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o zmalloc.o 
+g++ -std=c++11 -O3 -DNDEBUG log.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o log.o 
+g++ -std=c++11 -O3 -DNDEBUG slabs.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o slabs.o 
+g++ -std=c++11 -O3 -DNDEBUG workrequest.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o workrequest.o 
+g++ -std=c++11 -O3 -DNDEBUG cache.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o cache.o 
+g++ -std=c++11 -O3 -DNDEBUG directory.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o directory.o 
+g++ -std=c++11 -O3 -DNDEBUG remote_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o remote_request.o 
+g++ -std=c++11 -O3 -DNDEBUG local_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o local_request.o 
+g++ -std=c++11 -O3 -DNDEBUG pending_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o pending_request.o 
+g++ -std=c++11 -O3 -DNDEBUG MurmurHash.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o MurmurHash.o 
+g++ -std=c++11 -O3 -DNDEBUG logging.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o logging.o 
+logging.cc: In member function ‘int Log::writeToBuf(void*, Size, int)’:
+logging.cc:87:22: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+   87 |     memcpy(buf_, ptr + bytesToEnd, size - bytesToEnd);
+      |                  ~~~~^~~~~~~~~~~~
+logging.cc: In member function ‘int Log::reserve(Size)’:
+logging.cc:56:1: warning: control reaches end of non-void function [-Wreturn-type]
+   56 | }
+      | ^
+logging.cc: In member function ‘void Log::write()’:
+logging.cc:69:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+   69 |     ::write(fd_, buf_ + start, end - start);
+      |     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+logging.cc:71:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+   71 |     ::write(fd_, buf_ + end, BUF_SIZE - end);
+      |     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+logging.cc:72:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+   72 |     ::write(fd_, buf_, start);
+      |     ~~~~~~~^~~~~~~~~~~~~~~~~~
+rm -rf gfunc_test benchmark example worker master example-r rw_test fence_test lock_test map_test *.o *.a *.so *.d
+g++ -std=c++11 -O3 -DNDEBUG gfunc.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o gfunc.o 
+g++ -std=c++11 -O3 -DNDEBUG ae.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o ae.o 
+g++ -std=c++11 -O3 -DNDEBUG client.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o client.o 
+g++ -std=c++11 -O3 -DNDEBUG server.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o server.o 
+g++ -std=c++11 -O3 -DNDEBUG worker.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o worker.o 
+g++ -std=c++11 -O3 -DNDEBUG gallocator.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o gallocator.o 
+g++ -std=c++11 -O3 -DNDEBUG master.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o master.o 
+g++ -std=c++11 -O3 -DNDEBUG tcp.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o tcp.o 
+g++ -std=c++11 -O3 -DNDEBUG worker_handle.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o worker_handle.o 
+g++ -std=c++11 -O3 -DNDEBUG anet.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o anet.o 
+g++ -std=c++11 -O3 -DNDEBUG rdma.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o rdma.o 
+g++ -std=c++11 -O3 -DNDEBUG util.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o util.o 
+g++ -std=c++11 -O3 -DNDEBUG zmalloc.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o zmalloc.o 
+g++ -std=c++11 -O3 -DNDEBUG log.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o log.o 
+g++ -std=c++11 -O3 -DNDEBUG slabs.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o slabs.o 
+g++ -std=c++11 -O3 -DNDEBUG workrequest.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o workrequest.o 
+g++ -std=c++11 -O3 -DNDEBUG cache.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o cache.o 
+g++ -std=c++11 -O3 -DNDEBUG directory.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o directory.o 
+g++ -std=c++11 -O3 -DNDEBUG remote_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o remote_request.o 
+g++ -std=c++11 -O3 -DNDEBUG local_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o local_request.o 
+g++ -std=c++11 -O3 -DNDEBUG pending_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o pending_request.o 
+g++ -std=c++11 -O3 -DNDEBUG MurmurHash.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o MurmurHash.o 
+g++ -std=c++11 -O3 -DNDEBUG logging.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o logging.o 
+In file included from remote_request.cc:24:
+remote_request_cache.cc: In member function ‘void Worker::ProcessRemoteWeWrite(Client*, WorkRequest*)’:
+remote_request_cache.cc:1454:34: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+ 1454 |     void *cur_addr = cline->line + GMINUS(wr->addr, blk);
+remote_request.cc: In member function ‘void Worker::ProcessRemotePrivateWrite(Client*, WorkRequest*)’:
+remote_request.cc:373:31: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+  373 |     void *laddr = cline->line + GMINUS(wr->addr, blk);
+logging.cc: In member function ‘int Log::writeToBuf(void*, Size, int)’:
+logging.cc:87:22: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     memcpy(buf_, ptr + bytesToEnd, size - bytesToEnd);
+                  ~~~~^~~~~~~~~~~~
+logging.cc: In member function ‘void Log::write()’:
+logging.cc:69:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_ + start, end - start);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+logging.cc:71:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_ + end, BUF_SIZE - end);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+logging.cc:72:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_, start);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~
+rm -rf gfunc_test benchmark example worker master example-r rw_test fence_test lock_test map_test *.o *.a *.so *.d
+g++ -std=c++11 -O3 -DNDEBUG gfunc.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o gfunc.o 
+g++ -std=c++11 -O3 -DNDEBUG ae.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o ae.o 
+g++ -std=c++11 -O3 -DNDEBUG client.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o client.o 
+g++ -std=c++11 -O3 -DNDEBUG server.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o server.o 
+g++ -std=c++11 -O3 -DNDEBUG worker.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o worker.o 
+g++ -std=c++11 -O3 -DNDEBUG gallocator.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o gallocator.o 
+g++ -std=c++11 -O3 -DNDEBUG master.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o master.o 
+g++ -std=c++11 -O3 -DNDEBUG tcp.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o tcp.o 
+g++ -std=c++11 -O3 -DNDEBUG worker_handle.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o worker_handle.o 
+g++ -std=c++11 -O3 -DNDEBUG anet.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o anet.o 
+g++ -std=c++11 -O3 -DNDEBUG rdma.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o rdma.o 
+g++ -std=c++11 -O3 -DNDEBUG util.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o util.o 
+g++ -std=c++11 -O3 -DNDEBUG zmalloc.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o zmalloc.o 
+g++ -std=c++11 -O3 -DNDEBUG log.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o log.o 
+g++ -std=c++11 -O3 -DNDEBUG slabs.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o slabs.o 
+g++ -std=c++11 -O3 -DNDEBUG workrequest.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o workrequest.o 
+g++ -std=c++11 -O3 -DNDEBUG cache.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o cache.o 
+g++ -std=c++11 -O3 -DNDEBUG directory.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o directory.o 
+g++ -std=c++11 -O3 -DNDEBUG remote_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o remote_request.o 
+g++ -std=c++11 -O3 -DNDEBUG local_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o local_request.o 
+g++ -std=c++11 -O3 -DNDEBUG pending_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o pending_request.o 
+g++ -std=c++11 -O3 -DNDEBUG MurmurHash.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o MurmurHash.o 
+g++ -std=c++11 -O3 -DNDEBUG logging.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o logging.o 
+In file included from ../include/worker.h:16:0,
+                 from ../include/worker_handle.h:10,
+                 from worker_handle.cc:4:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from gfunc.cc:8:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from worker.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from log.cc:10:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from gallocator.cc:4:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from remote_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from pending_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from cache.cc:6:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from local_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+logging.cc: In member function ‘int Log::writeToBuf(void*, Size, int)’:
+logging.cc:87:22: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     memcpy(buf_, ptr + bytesToEnd, size - bytesToEnd);
+                  ~~~~^~~~~~~~~~~~
+rm -rf gfunc_test benchmark example worker master example-r rw_test fence_test lock_test map_test *.o *.a *.so *.d
+g++ -std=c++11 -O3 -DNDEBUG gfunc.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o gfunc.o 
+g++ -std=c++11 -O3 -DNDEBUG ae.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o ae.o 
+g++ -std=c++11 -O3 -DNDEBUG client.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o client.o 
+g++ -std=c++11 -O3 -DNDEBUG server.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o server.o 
+g++ -std=c++11 -O3 -DNDEBUG worker.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o worker.o 
+g++ -std=c++11 -O3 -DNDEBUG gallocator.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o gallocator.o 
+g++ -std=c++11 -O3 -DNDEBUG master.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o master.o 
+g++ -std=c++11 -O3 -DNDEBUG tcp.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o tcp.o 
+g++ -std=c++11 -O3 -DNDEBUG worker_handle.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o worker_handle.o 
+g++ -std=c++11 -O3 -DNDEBUG anet.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o anet.o 
+g++ -std=c++11 -O3 -DNDEBUG rdma.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o rdma.o 
+g++ -std=c++11 -O3 -DNDEBUG util.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o util.o 
+g++ -std=c++11 -O3 -DNDEBUG zmalloc.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o zmalloc.o 
+g++ -std=c++11 -O3 -DNDEBUG log.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o log.o 
+g++ -std=c++11 -O3 -DNDEBUG slabs.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o slabs.o 
+g++ -std=c++11 -O3 -DNDEBUG workrequest.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o workrequest.o 
+g++ -std=c++11 -O3 -DNDEBUG cache.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o cache.o 
+g++ -std=c++11 -O3 -DNDEBUG directory.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o directory.o 
+g++ -std=c++11 -O3 -DNDEBUG remote_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o remote_request.o 
+g++ -std=c++11 -O3 -DNDEBUG local_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o local_request.o 
+g++ -std=c++11 -O3 -DNDEBUG pending_request.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o pending_request.o 
+g++ -std=c++11 -O3 -DNDEBUG MurmurHash.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o MurmurHash.o 
+g++ -std=c++11 -O3 -DNDEBUG logging.cc -rdynamic  -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -g -c -o logging.o 
+In file included from remote_request.cc:24:0:
+remote_request_cache.cc: In member function ‘void Worker::ProcessRemoteWeWrite(Client*, WorkRequest*)’:
+remote_request_cache.cc:1454:34: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     void *cur_addr = cline->line + GMINUS(wr->addr, blk);
+remote_request.cc: In member function ‘void Worker::ProcessRemotePrivateWrite(Client*, WorkRequest*)’:
+remote_request.cc:373:31: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     void *laddr = cline->line + GMINUS(wr->addr, blk);
+logging.cc: In member function ‘void Log::write()’:
+logging.cc:69:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_ + start, end - start);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+logging.cc:71:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_ + end, BUF_SIZE - end);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+logging.cc:72:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_, start);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from ../include/worker.h:16:0,
+                 from ../include/worker_handle.h:10,
+                 from worker_handle.cc:4:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from pending_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from worker.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from gfunc.cc:8:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from remote_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from gallocator.cc:4:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from local_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from log.cc:10:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from cache.cc:6:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from remote_request.cc:24:0:
+remote_request_cache.cc: In member function ‘void Worker::ProcessRemoteWeWrite(Client*, WorkRequest*)’:
+remote_request_cache.cc:1454:34: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     void *cur_addr = cline->line + GMINUS(wr->addr, blk);
+logging.cc: In member function ‘int Log::writeToBuf(void*, Size, int)’:
+logging.cc:87:22: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     memcpy(buf_, ptr + bytesToEnd, size - bytesToEnd);
+                  ~~~~^~~~~~~~~~~~
+remote_request.cc: In member function ‘void Worker::ProcessRemotePrivateWrite(Client*, WorkRequest*)’:
+remote_request.cc:373:31: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     void *laddr = cline->line + GMINUS(wr->addr, blk);
+logging.cc: In member function ‘void Log::write()’:
+logging.cc:69:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_ + start, end - start);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+logging.cc:71:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_ + end, BUF_SIZE - end);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+logging.cc:72:12: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+     ::write(fd_, buf_, start);
+     ~~~~~~~^~~~~~~~~~~~~~~~~~
+In file included from ../include/worker.h:16:0,
+                 from ../include/worker_handle.h:10,
+                 from worker_handle.cc:4:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from gallocator.cc:4:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from worker.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from gfunc.cc:8:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from remote_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from cache.cc:6:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from ../include/gallocator.h:9,
+                 from log.cc:10:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from pending_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from local_request.cc:7:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from remote_request.cc:24:0:
+remote_request_cache.cc: In member function ‘void Worker::ProcessRemoteWeWrite(Client*, WorkRequest*)’:
+remote_request_cache.cc:1454:34: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     void *cur_addr = cline->line + GMINUS(wr->addr, blk);
+remote_request.cc: In member function ‘void Worker::ProcessRemotePrivateWrite(Client*, WorkRequest*)’:
+remote_request.cc:373:31: warning: pointer of type ‘void *’ used in arithmetic [-Wpointer-arith]
+     void *laddr = cline->line + GMINUS(wr->addr, blk);
+ar rcs libgalloc.a gfunc.o ae.o client.o server.o worker.o gallocator.o master.o tcp.o worker_handle.o anet.o rdma.o util.o zmalloc.o log.o slabs.o workrequest.o cache.o directory.o remote_request.o local_request.o pending_request.o MurmurHash.o logging.o 
+rm -rf nbody
+g++ -std=c++11 -fopenmp -O3 -g -rdynamic -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -o nbody nbody.cc ../src/libgalloc.a -libverbs -lpthread ../lib/libcuckoo/cityhash-1.1.1/src/.libs/libcityhash.a -lboost_thread -lboost_system
+ar rcs libgalloc.a gfunc.o ae.o client.o server.o worker.o gallocator.o master.o tcp.o worker_handle.o anet.o rdma.o util.o zmalloc.o log.o slabs.o workrequest.o cache.o directory.o remote_request.o local_request.o pending_request.o MurmurHash.o logging.o 
+rm -rf nbody
+g++ -std=c++11 -fopenmp -O3 -g -rdynamic -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -o nbody nbody.cc ../src/libgalloc.a -libverbs -lpthread ../lib/libcuckoo/cityhash-1.1.1/src/.libs/libcityhash.a -lboost_thread -lboost_system
+ar rcs libgalloc.a gfunc.o ae.o client.o server.o worker.o gallocator.o master.o tcp.o worker_handle.o anet.o rdma.o util.o zmalloc.o log.o slabs.o workrequest.o cache.o directory.o remote_request.o local_request.o pending_request.o MurmurHash.o logging.o 
+rm -rf nbody
+g++ -std=c++11 -fopenmp -O3 -g -rdynamic -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -o nbody nbody.cc ../src/libgalloc.a -libverbs -lpthread ../lib/libcuckoo/cityhash-1.1.1/src/.libs/libcityhash.a -lboost_thread -lboost_system
+In file included from ../include/worker.h:16:0,
+                 from nbody.cc:16:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+ar rcs libgalloc.a gfunc.o ae.o client.o server.o worker.o gallocator.o master.o tcp.o worker_handle.o anet.o rdma.o util.o zmalloc.o log.o slabs.o workrequest.o cache.o directory.o remote_request.o local_request.o pending_request.o MurmurHash.o logging.o 
+rm -rf nbody
+g++ -std=c++11 -fopenmp -O3 -g -rdynamic -I../include -I../lib/libcuckoo/src -I../lib/libcuckoo/cityhash-1.1.1/src -o nbody nbody.cc ../src/libgalloc.a -libverbs -lpthread ../lib/libcuckoo/cityhash-1.1.1/src/.libs/libcityhash.a -lboost_thread -lboost_system
+In file included from ../include/worker.h:16:0,
+                 from nbody.cc:16:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^
+In file included from ../include/worker.h:16:0,
+                 from nbody.cc:16:
+/usr/include/boost/bind.hpp:41:1: note: #pragma message: The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated. Please use <boost/bind/bind.hpp> + using namespace boost::placeholders, or define BOOST_BIND_GLOBAL_PLACEHOLDERS to retain the current behavior.
+ )
+ ^

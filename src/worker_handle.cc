@@ -131,6 +131,10 @@ int WorkerHandle::SendRequest(WorkRequest *wr)
       while (*notify_buf != 2)
         ;
       epicLog(LOG_DEBUG, "get notified via buf");
+      if (wr->op == InitAcquire)
+      {
+        epicLog(LOG_DEBUG, "op Init Acquire get notified via buf");
+      }
 #endif
       return wr->status;
     }
@@ -240,58 +244,110 @@ int WorkerHandle::SendRequest(WorkRequest *wr)
 #endif // MULTITHREAD end
 }
 
+#ifdef statistics_VERIOSN2
+
 void WorkerHandle::ReportCacheStatistics()
 {
-  // fprintf(stdout, "lread lrhit lwrite lwhit rread rrhit rwrite rwhit rwdhit\n");
-  // fprintf(stdout, "%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\n"
-  //                    , worker->no_local_reads_.load()
-  //                    , worker->no_local_reads_hit_.load()
-  //                    , worker->no_local_writes_.load()
-  //                    , worker->no_local_writes_hit_.load()
-  //                    , worker->no_remote_reads_.load()
-  //                    , worker->no_remote_reads_hit_.load()
-  //                    , worker->no_remote_writes_.load()
-  //                    , worker->no_remote_writes_hit_.load()
-  //                    , worker->no_remote_writes_direct_hit_.load());
+  // std::cout
+  //           << worker->no_local_reads_.load() << "\t"
+  //           << worker->no_local_reads_hit_.load() << "\t"
+  //           << worker->no_local_writes_.load() << "\t"
+  //           << worker->no_local_writes_hit_.load() << "\t"
+  std::cout << "read_hit: " << worker->read_SorM.load() << "\t"
+            << "read_miss: " << worker->read_I.load() << "\t"
+            << "write_hit: " << worker->write_M.load() << "\t"
+            << "write_miss: " << worker->write_IorS.load() << "\t" << endl;
+  std::cout << "read_miss_rate: " << (double)worker->read_I.load() / (double)(worker->read_I.load() + worker->read_SorM.load()) << endl;
+  std::cout << "write_miss_rate: " << (double)worker->write_IorS.load() / (double)(worker->write_IorS.load() + worker->write_M.load()) << endl;
+}
 
-  // printf("Cache Statistics\n");
-  // printf("miss\ttoinvalid\ttodirty\tInTransition\tdirty\tshared\n");
-  printf("%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\n"
-                       , worker->no_cache_exist_.load()
-                       , worker->no_cache_miss_.load()
-                       , worker->no_cache_read_hit_.load()
-                       , worker->no_cache_state_toinvalid_.load()
-                       , worker->no_cache_state_todirty_.load()
-                       , worker->no_cache_state_InTransition_read.load()
-                       , worker->no_cache_state_InTransition_write.load()
-                       , worker->no_cache_state_dirty_.load()
-                       , worker->no_cache_state_shared_.load());
+void WorkerHandle::ReportCacheStatistics_RC()
+{
+  std::cout << "read_hit: " << worker->read_rc_hit.load() << "\t"
+            << "read_miss: " << worker->read_rc_miss.load() << "\t"
+            << "write_hit: " << worker->write_rc_hit.load() << "\t"
+            << "write_miss: " << worker->write_rc_miss.load() << "\t" << endl;
+  std::cout << "read_miss_rate: " << (double)worker->read_rc_miss.load() / (double)(worker->read_rc_miss.load() + worker->read_rc_hit.load()) << endl;
+  std::cout << "write_miss_rate: " << (double)worker->write_rc_miss.load() / (double)(worker->write_rc_miss.load() + worker->write_rc_hit.load()) << endl;
 }
 
 void WorkerHandle::ResetCacheStatistics()
 {
-    worker->no_cache_exist_ = 0;
-    worker->no_cache_miss_ = 0;
-    worker->no_cache_read_hit_ = 0;
-    worker->no_cache_state_toinvalid_ = 0;
-    worker->no_cache_state_todirty_ = 0;
-    worker->no_cache_state_InTransition_ = 0;
-    worker->no_cache_state_InTransition_read = 0;
-    worker->no_cache_state_InTransition_write = 0;
-    worker->no_cache_state_dirty_ = 0;
-    worker->no_cache_state_shared_ = 0;
 
-    worker->no_local_reads_ = 0;
-    worker->no_local_reads_hit_ = 0;
-
-    worker->no_local_writes_ = 0;
-    worker->no_local_writes_hit_ = 0;
-
-    worker->no_remote_reads_ = 0;
-    worker->no_remote_reads_hit_ = 0;
-
-    worker->no_remote_writes_ = 0;
-    worker->no_remote_writes_hit_ = 0;
-
-    worker->no_remote_writes_direct_hit_ = 0;
+  worker->read_I = 0;
+  worker->read_SorM = 0;
+  worker->write_IorS = 0;
+  worker->write_M = 0;
 }
+
+void WorkerHandle::ResetCacheStatistics_RC()
+{
+  worker->read_rc_hit = 0;
+  worker->read_rc_miss = 0;
+  worker->write_rc_hit = 0;
+  worker->write_rc_miss = 0;
+}
+
+
+std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> WorkerHandle::getReadWriteMiss() const
+{
+  return std::make_tuple(worker->read_I.load(), worker->read_SorM.load(), worker->write_IorS.load(), worker->write_M.load());
+}
+
+std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> WorkerHandle::getReadWriteMiss_RC() const
+{
+  return std::make_tuple(worker->read_rc_miss.load(), worker->read_rc_hit.load(), worker->write_rc_miss.load(), worker->write_rc_hit.load());
+}
+
+#else
+void WorkerHandle::ReportCacheStatistics()
+{
+  std::cout << worker->no_cache_exist_.load() << "\t"
+            << worker->no_cache_miss_.load() << "\t"
+            << worker->no_cache_read_hit_.load() << "\t"
+            << worker->no_cache_state_toinvalid_.load() << "\t"
+            << worker->no_cache_state_todirty_.load() << "\t"
+            << worker->no_cache_state_InTransition_read.load() << "\t"
+            << worker->no_cache_state_InTransition_write.load() << "\t"
+            << worker->no_cache_state_dirty_.load() << "\t"
+            << worker->no_cache_state_shared_.load() << "\t"
+            << worker->no_local_reads_.load() << "\t"
+            << worker->no_local_reads_hit_.load() << "\t"
+            << worker->no_local_writes_.load() << "\t"
+            << worker->no_local_writes_hit_.load() << "\t"
+            << worker->no_remote_reads_.load() << "\t"
+            << worker->no_remote_reads_hit_.load() << "\t"
+            << worker->no_remote_writes_.load() << "\t"
+            << worker->no_remote_writes_hit_.load() << "\t"
+            << worker->no_remote_writes_direct_hit_.load() << std::endl;
+}
+
+void WorkerHandle::ResetCacheStatistics()
+{
+  worker->no_cache_exist_ = 0;
+  worker->no_cache_miss_ = 0;
+  worker->no_cache_read_hit_ = 0;
+  worker->no_cache_state_toinvalid_ = 0;
+  worker->no_cache_state_todirty_ = 0;
+  worker->no_cache_state_InTransition_ = 0;
+  worker->no_cache_state_InTransition_read = 0;
+  worker->no_cache_state_InTransition_write = 0;
+  worker->no_cache_state_dirty_ = 0;
+  worker->no_cache_state_shared_ = 0;
+
+  worker->no_local_reads_ = 0;
+  worker->no_local_reads_hit_ = 0;
+
+  worker->no_local_writes_ = 0;
+  worker->no_local_writes_hit_ = 0;
+
+  worker->no_remote_reads_ = 0;
+  worker->no_remote_reads_hit_ = 0;
+
+  worker->no_remote_writes_ = 0;
+  worker->no_remote_writes_hit_ = 0;
+
+  worker->no_remote_writes_direct_hit_ = 0;
+}
+
+#endif

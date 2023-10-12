@@ -108,7 +108,8 @@ enum Work
   writeshared_READ,
   completeFlush,
   flushToHomeOp,
-  InitAcquire
+  InitAcquire,
+  RC_READ
   /* add wpq add */
 };
 
@@ -159,6 +160,9 @@ typedef int Flag;
 #define Bounded_incoherence (1 << 22)
 
 #define Add_list (1 << 23) // 表示是第一次访问，需要加入shared_list(read_mostly)
+
+#define RC_Write_Cache (1 << 24) // 表示是RC缓存块的写操作
+
 #ifdef DYNAMIC
 #define CheckChange (1 << 24) //检查当前指令是否为目录转换专用
 #endif

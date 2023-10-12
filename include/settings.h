@@ -24,13 +24,13 @@ using namespace std;
  */
 //#define WH_USE_LOCK
 // #define USE_LRU
-#define LRU_NUM 10
+// #define LRU_NUM 10
 //#define USE_APPR_LRU
 //#define SELECTIVE_CACHING
 #define GFUNC_SUPPORT
 
 /* add xmx add */
-// #define SUB_BLOCK
+#define SUB_BLOCK
 /* add xmx add */
 
 /* add dynamic add */
@@ -86,18 +86,22 @@ using namespace std;
 /* add xmx add */
 //#define BLOCK_POWER 8
 //#define BLOCK_POWER 9
-#define BLOCK_POWER 10
+// #define BLOCK_POWER 10
 //#define BLOCK_POWER 11
-//#define BLOCK_POWER 12
+#define BLOCK_POWER 12
 
 //#define BLOCK_MASK 0xFFFFFFFFFFFFFF00L
 //#define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
-#define BLOCK_MASK 0xFFFFFFFFFFFFFC00L
+// #define BLOCK_MASK 0xFFFFFFFFFFFFFC00L
 //#define BLOCK_MASK 0xFFFFFFFFFFFFF800L
-//#define BLOCK_MASK 0xFFFFFFFFFFFFF000L
+#define BLOCK_MASK 0xFFFFFFFFFFFFF000L
 /* add xmx add */
 
 #define BLOCK_SIZE (1 << BLOCK_POWER)
+
+#define RC_VERSION2
+#define statistics_VERIOSN2
+// #define RC_VERSION2_add1
 
 #define RDMA_RESOURCE_EXCEPTION 1
 #define RDMA_CONTEXT_EXCEPTION 2

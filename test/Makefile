@@ -4,6 +4,9 @@ LIBS = ../src/libgalloc.a -libverbs -lpthread ../lib/libcuckoo/cityhash-1.1.1/sr
 CFLAGS += -g -rdynamic
 
 build: benchmark lru_test example example-r worker master slab_test rw_test fence_test lock_test hashtable_test hashtable_throw_test garray_test cs_test test
+muti_worker:muti_worker.cc
+	$(CPP) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIBS)
+
 t3:fft_not_Recu.cc
 	$(CPP) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIBS)
 

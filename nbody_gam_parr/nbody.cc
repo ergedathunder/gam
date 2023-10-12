@@ -26,16 +26,18 @@
 
 using namespace std;
 
-#define DEBUG_LEVEL LOG_TEST
-#define STEPS 204800
-#define SYNC_KEY STEPS
+#define Print_Hint
 
-const double GRAVITATIONAL_CONSTANT = 6.6726e-11; /* N(m/kg)2 */
-const double DEFAULT_DOMAIN_SIZE_X = 1.0e+10;     /* m  */
-const double DEFAULT_DOMAIN_SIZE_Y = 1.0e+10;     /* m  */
-const double DEFAULT_DOMAIN_SIZE_Z = 1.0e+10;     /* m  */
-const double DEFAULT_MASS_MAXIMUM = 1.0e+28;      /* kg */
-const double DEFAULT_TIME_INTERVAL = 1.0e+0;     /* s  */
+#define DEBUG_LEVEL LOG_TEST
+#define STEPS 304800
+uint64 SYNC_KEY = 304800;
+
+const float GRAVITATIONAL_CONSTANT = 6.6726e-11; /* N(m/kg)2 */
+const float DEFAULT_DOMAIN_SIZE_X = 1.0e+3;      /* m  */
+const float DEFAULT_DOMAIN_SIZE_Y = 1.0e+3;      /* m  */
+const float DEFAULT_DOMAIN_SIZE_Z = 1.0e+3;      /* m  */
+const float DEFAULT_MASS_MAXIMUM = 1.0e+15;      /* kg */
+const float DEFAULT_TIME_INTERVAL = 1.0e+0;      /* s  */
 const int DEFAULT_NUMBER_OF_PARTICLES = 1000;
 const int DEFAULT_NUMBER_OF_TIMESTEPS = 5;
 const int DEFAULT_TIMESTEPS_BETWEEN_OUTPUTS = 1;
@@ -48,13 +50,12 @@ const int PROGRAM_SUCCESS_CODE = 0;
  * Global variables - input
  */
 char base_filename[DEFAULT_STRING_LENGTH + 1];
-int number_of_particles;
+
 int block_size;
 float domain_size_x;
 float domain_size_y;
 float domain_size_z;
 float time_interval;
-int number_of_timesteps;
 int timesteps_between_outputs;
 bool execute_serial;
 unsigned random_seed;
@@ -70,27 +71,35 @@ GAddr particle_array_rcInput;
 GAddr particle_array_msiOutput;
 GAddr particle_array_rcOutput;
 
-int no_run = 3;
-int parrallel_num = 4;
 int iteration_times = 1;
 int node_id;
-int id;
+int id, alloc_id;
 int no_node = 0;
+int number_of_particles = 0;
+int number_of_timesteps = 0;
+int thread_num[4], begin_thread_num[4];
+int local_thread_num, local_begin_thread_num;
+int worker_num = 0;
 int is_read = 0;
 int is_sync = 0;
+int no_run = 0;
 int see_time = 0;
 double sleep_time = 0.0;
+
 int is_master = 1;
 string ip_master = get_local_ip("eth0");
 string ip_worker = get_local_ip("eth0");
 string input_file;
 int port_master = 12345;
 int port_worker = 12346;
-GAlloc *alloc;
 
-/*
- * Types
- */
+WorkerHandle *wh[10];
+ibv_device **curlist;
+Worker *worker[10];
+Master *master;
+int num_worker = 0;
+std::vector<GAlloc *> alloc_array;
+
 struct Particle
 {
     float position_x; /* m   */
@@ -103,8 +112,95 @@ struct Particle
     float total_force_y;
     float total_force_z;
     float mass; /* kg  */
-    // float pad;
 };
+
+Particle *first_particles_array;
+
+void justsetconf(Conf *old_conf)
+{
+    Conf *conf = new Conf();
+    (*conf) = (*old_conf);
+    conf->loglevel = DEBUG_LEVEL;
+    GAllocFactory::SetConf(conf);
+    // no setting master;
+}
+
+void Synchro()
+{
+    // alloc_array[0]->Put(SYNC_KEY + node_id, &node_id, sizeof(int));
+    for (int i = 0; i < local_thread_num; i++)
+    {
+        alloc_array[i]->Put(SYNC_KEY + node_id * no_node + i, &node_id, sizeof(int));
+        printf("node %d thread %d put key %ld\n", node_id, i, SYNC_KEY + node_id * no_node + i);
+        fflush(stdout);
+    }
+
+    for (int i = 1; i <= no_node; i++)
+    {
+        // alloc_array[0]->Get(SYNC_KEY + i, &id);
+        int target_thread_num = begin_thread_num[i - 1];
+        for (int j = 0; j < target_thread_num; j++)
+        {
+            alloc_array[0]->Get(SYNC_KEY + i * no_node + j, &id);
+            printf("node %d get key %ld\n", node_id, SYNC_KEY + i * no_node + j);
+            fflush(stdout);
+            epicAssert(id == i);
+        }
+    }
+
+    SYNC_KEY = SYNC_KEY + no_node * no_node + worker_num;
+}
+
+void Synchro_zero()
+{
+    alloc_array[0]->Put(SYNC_KEY + node_id, &node_id, sizeof(int));
+    printf("node %d put key %ld\n", node_id, SYNC_KEY + node_id);
+    fflush(stdout);
+
+    for (int i = 1; i <= no_node; i++)
+    {
+        alloc_array[0]->Get(SYNC_KEY + i, &id);
+        epicAssert(id == i);
+    }
+
+    SYNC_KEY = SYNC_KEY + no_node * no_node + worker_num + 10;
+}
+
+void Create_master(Conf *old_conf)
+{
+    Conf *conf = new Conf();
+    (*conf) = (*old_conf);
+    conf->loglevel = DEBUG_LEVEL;
+    GAllocFactory::SetConf(conf);
+    master = new Master(*conf);
+}
+
+void Create_worker(Conf *old_conf)
+{
+    RdmaResource *res = new RdmaResource(curlist[0], false);
+    printf("end get rdma source\n");
+    fflush(stdout);
+
+    Conf *conf = new Conf();
+    (*conf) = (*old_conf);
+    conf->worker_port -= num_worker * 10;
+    worker[num_worker] = new Worker(*conf, res);
+
+    printf("end get new worker\n");
+    fflush(stdout);
+
+    wh[num_worker] = new WorkerHandle(worker[num_worker]);
+
+    printf("end get new workerhandler\n");
+    fflush(stdout);
+
+    printf("cur worker_port : %d\n", conf->worker_port);
+    printf("cur node_id : %d\n", wh[num_worker]->GetWorkerId());
+    printf("\n");
+    fflush(stdout);
+
+    num_worker++;
+}
 
 /*
  * Function Prototypes
@@ -138,9 +234,6 @@ void Particle_check(GAddr this_particle, char *action, char *routine);
 void Particle_array_check(GAddr this_particle_array, int number_of_particles,
                           char *action, char *routine);
 #endif
-
-/* wall_time */
-long wtime();
 
 void Read_val(WorkerHandle *Cur_wh, GAddr addr, void *val, int size)
 {
@@ -216,17 +309,15 @@ void Free_addr(WorkerHandle *Cur_wh, GAddr addr)
     }
 }
 
-void calculate_force_addr(WorkerHandle *Cur_wh, GAddr this_particle1, GAddr this_particle2, GAddr this_particle3,
-                          float *force_x, float *force_y, float *force_z)
+void calculate_force(int this_particle1_id, int this_particle2_id, GAddr second_particles, int thread_id)
 {
     /* Particle calculate force */
     float difference_x, difference_y, difference_z;
     float distance_squared, distance;
     float force_magnitude;
 
-    Particle p1, p2, p3;
-    Read_val(Cur_wh, this_particle1, &p1, sizeof(Particle));
-    Read_val(Cur_wh, this_particle2, &p2, sizeof(Particle));
+    Particle p1 = first_particles_array[this_particle1_id];
+    Particle p2 = first_particles_array[this_particle2_id];
 
     difference_x = p2.position_x - p1.position_x;
     difference_y = p2.position_y - p1.position_y;
@@ -240,70 +331,30 @@ void calculate_force_addr(WorkerHandle *Cur_wh, GAddr this_particle1, GAddr this
 
     force_magnitude = GRAVITATIONAL_CONSTANT * (p1.mass) * (p2.mass) / distance_squared;
 
-    *force_x = (force_magnitude / distance) * difference_x;
-    *force_y = (force_magnitude / distance) * difference_y;
-    *force_z = (force_magnitude / distance) * difference_z;
-
-    Write_val(Cur_wh, this_particle3, &p3, sizeof(Particle), 1);
-}
-void calculate_force(Particle *this_particle1, Particle *this_particle2,
-                     float *force_x, float *force_y, float *force_z)
-{
-    /* Particle calculate force */
-    float difference_x, difference_y, difference_z;
-    float distance_squared, distance;
-    float force_magnitude;
-
-    Particle p1 = *this_particle1;
-    Particle p2 = *this_particle2;
-
-    difference_x = p2.position_x - p1.position_x;
-    difference_y = p2.position_y - p1.position_y;
-    difference_z = p2.position_z - p1.position_z;
-
-    distance_squared = difference_x * difference_x +
-                       difference_y * difference_y +
-                       difference_z * difference_z;
-
-    distance = std::sqrt(distance_squared); // sqrtf(distance_squared);
-
-    force_magnitude = GRAVITATIONAL_CONSTANT * (p1.mass) * (p2.mass) / distance_squared;
-
-    *force_x = (force_magnitude / distance) * difference_x;
-    *force_y = (force_magnitude / distance) * difference_y;
-    *force_z = (force_magnitude / distance) * difference_z;
+    float force_x = (force_magnitude / distance) * difference_x;
+    float force_y = (force_magnitude / distance) * difference_y;
+    float force_z = (force_magnitude / distance) * difference_z;
+    Particle p3;
+    alloc_array[thread_id]->Read(second_particles + this_particle1_id * sizeof(Particle), &p3, sizeof(Particle));
+    p3.total_force_x += force_x;
+    p3.total_force_y += force_y;
+    p3.total_force_z += force_z;
+    alloc_array[thread_id]->Write(second_particles + this_particle1_id * sizeof(Particle), &p3, sizeof(Particle), 1);
 }
 
-void sub_nbody(GAddr first_particles, GAddr second_particles, int index)
+void sub_nbody(GAddr first_particles, GAddr second_particles, int index, int thread_id)
 {
-    GAddr first_particles_index = first_particles + index * sizeof(Particle);
     GAddr second_particles_index = second_particles + index * sizeof(Particle);
-    float force_x = 0.0f, force_y = 0.0f, force_z = 0.0f;
-    float total_force_x = 0.0f, total_force_y = 0.0f, total_force_z = 0.0f;
+    Particle init_particle = {0};
+    alloc_array[thread_id]->Write(second_particles_index, &init_particle, sizeof(Particle), 1);
 
     int i;
-    Particle first_particles_array[number_of_particles];
-    // Read_val(Cur_wh, first_particles, first_particles_array, sizeof(Particle) * number_of_particles);
-    alloc->Read(first_particles, first_particles_array, sizeof(Particle) * number_of_particles);
 
     for (i = 0; i < number_of_particles; i++)
     {
         if (i != index)
         {
-            // calculate_force(WorkerHandle *Cur_wh, Particle *this_particle1, Particle *this_particle2,float *force_x, float *force_y, float *force_z)
-            calculate_force(&first_particles_array[index], &first_particles_array[i], &force_x, &force_y, &force_z);
-
-            // Read_val(Cur_wh, second_particles_index + sizeof(float) * 6, &total_force_x, sizeof(float));
-            total_force_x += force_x;
-            // Write_val(Cur_wh, second_particles_index + sizeof(float) * 6, &total_force_x, sizeof(float), 1);
-
-            // Read_val(Cur_wh, second_particles_index + sizeof(float) * 7, &total_force_y, sizeof(float));
-            total_force_y += force_y;
-            // Write_val(Cur_wh, second_particles_index + sizeof(float) * 7, &total_force_y, sizeof(float), 1);
-
-            // Read_val(Cur_wh, second_particles_index + sizeof(float) * 8, &total_force_z, sizeof(float));
-            total_force_z += force_z;
-            // Write_val(Cur_wh, second_particles_index + sizeof(float) * 8, &total_force_z, sizeof(float), 1);
+            calculate_force(index, i, second_particles, thread_id);
         }
     }
 
@@ -312,14 +363,13 @@ void sub_nbody(GAddr first_particles, GAddr second_particles, int index)
 
     Particle first_particles_buf = first_particles_array[index];
     Particle second_particles_buf;
-    // Read_val(Cur_wh, first_particles_index, &first_particles_buf, sizeof(Particle));
-    // Read_val(Cur_wh, second_particles_index, &second_particles_buf, sizeof(Particle));
+    alloc_array[thread_id]->Read(second_particles_index, &second_particles_buf, sizeof(Particle));
 
     second_particles_buf.mass = first_particles_buf.mass;
 
-    velocity_change_x = total_force_x * (time_interval / first_particles_buf.mass);
-    velocity_change_y = total_force_y * (time_interval / first_particles_buf.mass);
-    velocity_change_z = total_force_z * (time_interval / first_particles_buf.mass);
+    velocity_change_x = second_particles_buf.total_force_x * (time_interval / first_particles_buf.mass);
+    velocity_change_y = second_particles_buf.total_force_y * (time_interval / first_particles_buf.mass);
+    velocity_change_z = second_particles_buf.total_force_z * (time_interval / first_particles_buf.mass);
 
     position_change_x = first_particles_buf.velocity_x + velocity_change_x * (0.5 * time_interval);
     position_change_y = first_particles_buf.velocity_y + velocity_change_y * (0.5 * time_interval);
@@ -333,90 +383,96 @@ void sub_nbody(GAddr first_particles, GAddr second_particles, int index)
     second_particles_buf.position_y = first_particles_buf.position_y + position_change_y;
     second_particles_buf.position_z = first_particles_buf.position_z + position_change_z;
 
-    // Write_val(Cur_wh, second_particles_index, &second_particles_buf, sizeof(Particle), 1);
-    alloc->Write(second_particles_index, &second_particles_buf, sizeof(Particle), 1);
-    // struct Particle
-    // {
-    //     float position_x; /* m   */
-    //     float position_y; /* m   */
-    //     float position_z; /* m   */
-    //     float velocity_x; /* m/s */
-    //     float velocity_y; /* m/s */
-    //     float velocity_z; /* m/s */
-    //     float total_force_x;
-    //     float total_force_y;
-    //     float total_force_z;
-    //     float mass; /* kg  */
-    //     // float pad;
-    // };
-    // Write_val(Cur_wh, second_particles_index, &second_particles_buf.position_x, sizeof(float), 1);
-    // Write_val(Cur_wh, second_particles_index + sizeof(float), &second_particles_buf.position_y, sizeof(float), 1);
-    // Write_val(Cur_wh, second_particles_index + sizeof(float) * 2, &second_particles_buf.position_z, sizeof(float), 1);
-    // Write_val(Cur_wh, second_particles_index + sizeof(float) * 3, &second_particles_buf.velocity_x, sizeof(float), 1);
-    // Write_val(Cur_wh, second_particles_index + sizeof(float) * 4, &second_particles_buf.velocity_y, sizeof(float), 1);
-    // Write_val(Cur_wh, second_particles_index + sizeof(float) * 5, &second_particles_buf.velocity_z, sizeof(float), 1);
-    // Write_val(Cur_wh, second_particles_index + sizeof(float) * 9, &second_particles_buf.mass, sizeof(float), 1);
+    alloc_array[thread_id]->Write(second_particles_index, &second_particles_buf, sizeof(Particle), 1);
+
+    // alloc->Write(second_particles_index, &second_particles_buf.position_x, sizeof(float), 1);
+    // alloc->Write(second_particles_index + sizeof(float), &second_particles_buf.position_y, sizeof(float), 1);
+    // alloc->Write(second_particles_index + sizeof(float) * 2, &second_particles_buf.position_z, sizeof(float), 1);
+    // alloc->Write(second_particles_index + sizeof(float) * 3, &second_particles_buf.velocity_x, sizeof(float), 1);
+    // alloc->Write(second_particles_index + sizeof(float) * 4, &second_particles_buf.velocity_y, sizeof(float), 1);
+    // alloc->Write(second_particles_index + sizeof(float) * 5, &second_particles_buf.velocity_z, sizeof(float), 1);
+    // alloc->Write(second_particles_index + sizeof(float) * 9, &second_particles_buf.mass, sizeof(float), 1);
 }
 
-void nbody(GAddr first_particles, GAddr second_particles)
+void sub_nbody_perthread(GAddr first_particles, GAddr second_particles, int start_index, int thread_id)
+{
+    int interval_node = no_node;
+    int interval_thread = local_thread_num;
+    int interval = interval_node * interval_thread;
+
+    for (int index = start_index + thread_id * interval_node; index < number_of_particles; index += interval)
+    {
+        sub_nbody(first_particles, second_particles, index, thread_id);
+        // printf("node_id =%d, call sub_nbody, index = %d, thread_id = %d\n", node_id, index, thread_id);
+    }
+}
+
+void sub_nbody_perworker(GAddr first_particles, GAddr second_particles, int start_index)
+{
+    thread *threads = new thread[local_thread_num];
+    for (int i = 0; i < local_thread_num; i++)
+    {
+        threads[i] = thread(sub_nbody_perthread, first_particles, second_particles, start_index, i);
+    }
+    for (int i = 0; i < local_thread_num; i++)
+    {
+        threads[i].join();
+    }
+}
+
+void nbody(GAddr first_particles, GAddr second_particles, int timestep)
 {
 
-    for (int id = 0; id < number_of_particles; id++)
+    alloc_array[0]->Read(first_particles, first_particles_array, sizeof(Particle) * number_of_particles);
+
+    for (int i = 0; i < no_node; i++)
     {
-        // int id_parr = id % parrallel_num + 1;
-        int id_parr = 1;
+        int id_parr = i + 1;
         if (id_parr == node_id)
         {
-            sub_nbody(first_particles, second_particles, id);
+            sub_nbody_perworker(first_particles, second_particles, i);
+        }
+    }
+}
+
+void nbody_rc(GAddr first_particles, GAddr second_particles, int timestep)
+{
+    alloc_array[0]->Read(first_particles, first_particles_array, sizeof(Particle) * number_of_particles);
+
+    for (int i = 0; i < local_thread_num; i++)
+    {
+        alloc_array[i]->acquireLock(1, second_particles, sizeof(Particle) * number_of_particles, false, sizeof(Particle));
+    }
+
+    for (int i = 0; i < no_node; i++)
+    {
+        int id_parr = i + 1;
+        if (id_parr == node_id)
+        {
+            sub_nbody_perworker(first_particles, second_particles, i);
         }
     }
 
-#ifdef CHECK_VAL
-
-    alloc->ReportCacheStatistics();
-
+#ifdef RC_VERSION2
+#else
+    for (int i = 0; i < local_thread_num; i++)
+    {
+        alloc_array[i]->releaseLock(1, second_particles);
+    }
 #endif
 }
 
-void nbody_serial(GAddr first_particles, GAddr second_particles)
+void particle_print(GAddr particle, int number_output)
 {
-    for (int id = 0; id < number_of_particles; id++)
+    printf("\n\nPrinting %d particles:\n", number_output);
+    Particle particle_buf[number_output];
+    alloc_array[0]->Read(particle, particle_buf, sizeof(Particle) * number_output);
+    for (int i = 0; i < number_output; i++)
     {
-        int id_parr = id % parrallel_num + 1;
-        if (id_parr == node_id)
-        {
-            sub_nbody(first_particles, second_particles, id);
-        }
-    }
-}
-
-void nbody_rc(GAddr first_particles, GAddr second_particles)
-{
-    alloc->acquireLock(1, second_particles, sizeof(Particle) * number_of_particles, true, sizeof(Particle));
-
-    for (int id = 0; id < number_of_particles; id++)
-    {
-        int id_parr = id % parrallel_num + 1;
-        if (id_parr == node_id)
-        {
-            sub_nbody(first_particles, second_particles, id);
-        }
-    }
-
-    alloc->releaseLock(1, second_particles);
-}
-
-void particle_print(GAddr particle, int number_of_particles)
-{
-    printf("\n\nPrinting %d particles:\n", number_of_particles);
-    for (int i = 0; i < 3; i++)
-    {
-        Particle particle_buf;
-        alloc->Read(particle + i * sizeof(Particle), &particle_buf, sizeof(Particle));
         printf("Particle %d:\n", i);
-        printf("Mass: %f\n", particle_buf.mass);
-        printf("Position: (%f, %f, %f)\n", particle_buf.position_x, particle_buf.position_y, particle_buf.position_z);
-        printf("Velocity: (%f, %f, %f)\n", particle_buf.velocity_x, particle_buf.velocity_y, particle_buf.velocity_z);
+        printf("Mass: %f\n", particle_buf[i].mass);
+        printf("Position: (%f, %f, %f)\n", particle_buf[i].position_x, particle_buf[i].position_y, particle_buf[i].position_z);
+        printf("Velocity: (%f, %f, %f)\n", particle_buf[i].velocity_x, particle_buf[i].velocity_y, particle_buf[i].velocity_z);
     }
 }
 
@@ -424,133 +480,168 @@ void Solve_MSI()
 {
     if (is_master)
     {
-        particle_array_msiOutput = alloc->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
-
-        printf("particle_array_msiOutput=%lx\n", particle_array_msiOutput);
-        alloc->Put(142, &particle_array_msiOutput, sizeof(GAddr));
+        particle_array_msiOutput = alloc_array[0]->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
+#ifdef Print_Hint
+        printf("master, particle_array_msiOutput=%lx\n", particle_array_msiOutput);
+#endif
+        alloc_array[0]->Put(142, &particle_array_msiOutput, sizeof(GAddr));
     }
     else
     {
-        alloc->Get(142, &particle_array_msiOutput);
-        printf("particle_array_msiOutput=%lx\n", particle_array_msiOutput);
+        alloc_array[0]->Get(142, &particle_array_msiOutput);
+#ifdef Print_Hint
+        printf("salve id=%d, particle_array_msiOutput=%lx\n", node_id, particle_array_msiOutput);
+#endif
     }
 
+#ifdef Print_Hint
     printf("Begin N-body simulation MSI\n");
+#endif
+
+    Synchro_zero();
+
+    /*
+    at here, the master and worker have the same particle_array_msiOutput
+    and the same particle_array_msiInput
+    */
 
     long start, end;
-    double time;
+    long time;
     if (is_master)
     {
-        start = wtime();
+        start = get_time();
     }
 
     for (int timestep = 1; timestep <= number_of_timesteps; timestep++)
     {
-        nbody(particle_array_msiInput, particle_array_msiOutput);
+        nbody(particle_array_msiInput, particle_array_msiOutput, timestep);
 
-        alloc->Put(SYNC_KEY * 3 + node_id + timestep * 100, &node_id, sizeof(int));
-        for (int i = 1; i <= no_node; i++)
-        {
-            alloc->Get(SYNC_KEY * 3 + i + timestep * 100, &id);
-            epicAssert(id == i);
-        }
+        Synchro_zero();
 
         if (is_master)
         {
-            particle_print(particle_array_msiOutput, number_of_particles);
-            Particle tmp1[number_of_particles], tmp2[number_of_particles];
+#ifdef Print_Hint
+            particle_print(particle_array_msiOutput, 5);
+#endif
+        }
+        if (is_master && timestep != number_of_timesteps)
+        {
+            Particle tmp2[number_of_particles];
             /* swap arrays */
-            alloc->Read(particle_array_msiInput, tmp1, sizeof(Particle) * number_of_particles);
-            alloc->Read(particle_array_msiOutput, tmp2, sizeof(Particle) * number_of_particles);
-            alloc->Write(particle_array_msiInput, tmp2, sizeof(Particle) * number_of_particles, 1);
-            alloc->Write(particle_array_msiOutput, tmp1, sizeof(Particle) * number_of_particles, 1);
+            alloc_array[0]->Read(particle_array_msiOutput, tmp2, sizeof(Particle) * number_of_particles);
+            alloc_array[0]->Write(particle_array_msiInput, tmp2, sizeof(Particle) * number_of_particles, 1);
         }
 
-        alloc->Put(SYNC_KEY * 4 + node_id + timestep * 100, &node_id, sizeof(int));
-        for (int i = 1; i <= no_node; i++)
+        if (timestep != number_of_timesteps)
         {
-            alloc->Get(SYNC_KEY * 4 + i + timestep * 100, &id);
-            epicAssert(id == i);
+            Synchro_zero();
         }
+#ifdef Print_Hint
         printf("Iteration %d complete\n", timestep);
+#endif
     }
 
     if (is_master)
     {
-        end = wtime();
-        time = (end - start) / 1000000.0;
+        end = get_time();
+        time = end - start;
+#ifdef Print_Hint
         printf("NBody simulation complete\n");
         printf("Number of Particles: %d\n", number_of_particles);
         printf("Number of Iterations: %d\n", number_of_timesteps);
-        printf("Run time: %.3f s\n", time);
-    }
-
-#ifdef VERBOSE
 #endif
-
-    // particle_array_msiInput = Particle_array_destruct(wh[0], particle_array_msiInput, number_of_particles);
-    // particle_array_msiOutput = Particle_array_destruct(wh[0], particle_array_msiOutput, number_of_particles);
+        printf("MSI Run time: %ld ns\n", time);
+    }
+    for (int alloc_id = 0; alloc_id < local_begin_thread_num; alloc_id++)
+    {
+        alloc_array[alloc_id]->ReportCacheStatistics();
+    }
 }
 
 void Solve_RC()
 {
-    // particle_array_rcOutput = Malloc_addr(wh[0], sizeof(Particle) * number_of_particles, RC_Write_shared, 1);
     if (is_master)
     {
-        particle_array_rcOutput = alloc->AlignedMalloc(sizeof(Particle) * number_of_particles, RC_Write_shared, 1);
-
-        printf("particle_array_rcOutput=%lx\n", particle_array_rcOutput);
-        alloc->Put(144, &particle_array_rcOutput, sizeof(GAddr));
+        particle_array_rcOutput = alloc_array[0]->AlignedMalloc(sizeof(Particle) * number_of_particles, RC_Write_shared, 1);
+#ifdef Print_Hint
+        printf("master, particle_array_rcOutput=%lx\n", particle_array_rcOutput);
+        fflush(stdout);
+#endif
+        alloc_array[0]->Put(144, &particle_array_rcOutput, sizeof(GAddr));
     }
     else
     {
-        alloc->Get(144, &particle_array_rcOutput);
-        printf("particle_array_rcOutput=%lx\n", particle_array_rcOutput);
+        alloc_array[0]->Get(144, &particle_array_rcOutput);
+#ifdef Print_Hint
+        printf("salve id=%d, particle_array_rcOutput=%lx\n", node_id, particle_array_rcOutput);
+        fflush(stdout);
+#endif
     }
+#ifdef Print_Hint
+    printf("node_id = %d, Begin N-body simulation RC\n", node_id);
+    fflush(stdout);
+#endif
 
-    printf("Begin N-body simulation RC\n");
+    Synchro_zero();
 
     long start, end;
-    double time;
+    long time;
     if (is_master)
     {
-        start = wtime();
+        start = get_time();
     }
 
     for (int timestep = 1; timestep <= number_of_timesteps; timestep++)
     {
-        nbody_rc(particle_array_rcInput, particle_array_rcOutput);
+        // input是新值，output是新值
+        nbody_rc(particle_array_rcInput, particle_array_rcOutput, timestep);
+        // output是新值
+
+        Synchro_zero();
 
         if (is_master)
         {
-            particle_print(particle_array_rcOutput, number_of_particles);
-
-            /* swap arrays */
-            Particle tmp1[number_of_particles], tmp2[number_of_particles];
-            alloc->Read(particle_array_rcInput, tmp1, sizeof(Particle) * number_of_particles);
-            alloc->Read(particle_array_rcOutput, tmp2, sizeof(Particle) * number_of_particles);
-            alloc->Write(particle_array_rcInput, tmp2, sizeof(Particle) * number_of_particles, 1);
-            alloc->Write(particle_array_rcOutput, tmp1, sizeof(Particle) * number_of_particles, 1);
+#ifdef Print_Hint
+            particle_print(particle_array_rcOutput, 5);
+#endif
         }
+        if (is_master && timestep != number_of_timesteps)
+        {
+            /* swap arrays */
+            Particle tmp22[number_of_particles];
 
+            alloc_array[0]->Read(particle_array_rcOutput, tmp22, sizeof(Particle) * number_of_particles);
+            alloc_array[0]->Write(particle_array_rcInput, tmp22, sizeof(Particle) * number_of_particles, 1);
+        }
+        // if (timestep != number_of_timesteps)
+        // {
+        //     Synchro_zero();
+        // }
+
+        Synchro_zero();
+
+#ifdef Print_Hint
         printf("Iteration %d complete\n", timestep);
+#endif
     }
+
     if (is_master)
     {
-        end = wtime();
-        time = (end - start) / 1000000.0;
-
+        end = get_time();
+        time = end - start;
+#ifdef Print_Hint
         printf("NBody simulation complete\n");
         printf("Number of Particles: %d\n", number_of_particles);
         printf("Number of Iterations: %d\n", number_of_timesteps);
-        printf("Run time: %.3f s\n", time);
+#endif
+        printf("RC Run time: %ld ns\n", time);
     }
 
-#ifdef VERBOSE
-#endif
-
-    // particle_array_msiInput = Particle_array_destruct(wh[0], particle_array_msiInput, number_of_particles);
-    // particle_array_msiOutput = Particle_array_destruct(wh[0], particle_array_msiOutput, number_of_particles);
+    for (int alloc_id = 0; alloc_id < local_begin_thread_num; alloc_id++)
+    {
+        alloc_array[alloc_id]->ReportCacheStatistics_RC();
+        alloc_array[alloc_id]->ReportCacheStatistics();
+    }
 }
 
 /*
@@ -562,16 +653,12 @@ void Particle_input_arguments(FILE *input)
 
     void Particle_input_arguments()
 {
-    number_of_particles = DEFAULT_NUMBER_OF_PARTICLES; // 1000
-    block_size = DEFAULT_NUMBER_OF_PARTICLES;          // 1000
-    domain_size_x = DEFAULT_DOMAIN_SIZE_X;             //
+    number_of_particles = DEFAULT_NUMBER_OF_PARTICLES;
+    block_size = DEFAULT_NUMBER_OF_PARTICLES;
+    domain_size_x = DEFAULT_DOMAIN_SIZE_X;
     domain_size_y = DEFAULT_DOMAIN_SIZE_Y;
     domain_size_z = DEFAULT_DOMAIN_SIZE_Z;
     time_interval = DEFAULT_TIME_INTERVAL;
-    number_of_timesteps = DEFAULT_NUMBER_OF_PARTICLES;
-    timesteps_between_outputs = DEFAULT_TIMESTEPS_BETWEEN_OUTPUTS;
-    execute_serial = DEFAULT_EXECUTE_SERIAL;
-    random_seed = DEFAULT_RANDOM_SEED;
     mass_maximum = DEFAULT_MASS_MAXIMUM;
 
 #ifdef File_input
@@ -788,7 +875,7 @@ void Particle_set_position_randomly(GAddr this_particle, int index)
     particle_init.velocity_z = 0.0;
     particle_init.mass = mass_maximum * (static_cast<float>(random()) / (static_cast<float>(RAND_MAX) + 1.0));
     // Write_val(Cur_wh, this_particle + index * sizeof(Particle), &particle_init, sizeof(Particle), 1);
-    alloc->Write(this_particle + index * sizeof(Particle), &particle_init, sizeof(Particle));
+    alloc_array[0]->Write(this_particle + index * sizeof(Particle), &particle_init, sizeof(Particle));
 }
 
 /*
@@ -805,7 +892,7 @@ void Particle_initialize_randomly(GAddr this_particle, int index)
 
 #ifdef CHECK_VAL
     Particle particle_buf;
-    alloc->Read(this_particle + index * sizeof(Particle), &particle_buf, sizeof(Particle));
+    alloc_array[0]->Read(this_particle + index * sizeof(Particle), &particle_buf, sizeof(Particle));
     printf("mass %g\n", particle_buf.mass);
 #endif
 }
@@ -1022,18 +1109,56 @@ long wtime()
     return t.tv_sec * 1000000 + t.tv_usec;
 }
 
+void initValue()
+{
+    int workernum = worker_num;
+    for (int j = 0; workernum > 0; j++)
+    {
+        thread_num[j % no_node]++; // 使用取模运算在节点之间循环分配
+        workernum--;               // 更新剩余的工作线程数
+    }
+    epicAssert(no_node <= worker_num);
+
+    for (int j = 0; j < no_node; j++)
+    {
+        printf("node %d has %d threads\n", j, thread_num[j]);
+        fflush(stdout);
+        begin_thread_num[j] = thread_num[j];
+        if (j + 1 == node_id)
+        {
+            local_thread_num = thread_num[j];
+            local_begin_thread_num = begin_thread_num[j];
+        }
+    }
+
+    curlist = ibv_get_device_list(NULL);
+
+    alloc_array.resize(local_thread_num);
+
+    int temp_sum = 0;
+    for (int i = 0; i < no_node; i++)
+    {
+        temp_sum += begin_thread_num[i];
+    }
+    epicAssert(temp_sum == worker_num);
+}
+
 /* main */
 int main(int argc, char **argv)
 {
+#ifdef Print_Hint
     printf("NBody simulation\n");
+    fflush(stdout);
+#endif
 
 #ifdef File_input
     input_file = "input_files/nbody_input-100_100.in";
     FILE *input_data = fopen(input_file.c_str(), "r");
     Particle_input_arguments(input_data);
-#endif
-
+#else
     Particle_input_arguments();
+#endif
+    srand(time(NULL));
 
     for (int i = 1; i < argc; i++)
     {
@@ -1073,7 +1198,14 @@ int main(int argc, char **argv)
         else if (strcmp(argv[i], "--no_node") == 0)
         {
             no_node = atoi(argv[++i]);
-            parrallel_num = no_node;
+        }
+        else if (strcmp(argv[i], "--no_worker") == 0)
+        {
+            worker_num = atoi(argv[++i]);
+        }
+        else if (strcmp(argv[i], "--node_id") == 0)
+        {
+            node_id = atoi(argv[++i]);
         }
         else if (strcmp(argv[i], "--no_run") == 0)
         {
@@ -1108,10 +1240,13 @@ int main(int argc, char **argv)
             printf("Unrecognized option %s for benchmark\n", argv[i]);
         }
     }
-
+#ifdef Print_Hint
+    printf("\n--------------------\n");
     printf("is_master=%d,master_ip=%s,master_port=%d,worker_ip=%s,worker_port=%d\n", is_master, ip_master.c_str(), port_master, ip_worker.c_str(), port_worker);
-    printf("no_node=%d,no_run=%d,number_of_particles=%d,number_of_timesteps=%d\n", no_node, no_run, number_of_particles, number_of_timesteps);
-    printf("\n\n");
+    printf("no_node=%d,no_worker=%d,no_run=%d,node_id=%d,number_of_particles=%d,number_of_timesteps=%d\n", no_node, worker_num, no_run, node_id, number_of_particles, number_of_timesteps);
+    printf("\n--------------------\n");
+    fflush(stdout);
+#endif
 
     Conf conf;
     conf.loglevel = DEBUG_LEVEL;
@@ -1121,60 +1256,94 @@ int main(int argc, char **argv)
     conf.worker_ip = ip_worker;
     conf.worker_port = port_worker;
 
-    std::cout << "is_master=" << is_master << ",master_ip=" << ip_master << ",master_port=" << port_master << ",worker_ip=" << ip_worker << ",worker_port=" << port_worker << endl;
+    first_particles_array = new Particle[number_of_particles];
 
-    alloc = GAllocFactory::CreateAllocator(&conf);
+    initValue();
 
-    node_id = alloc->GetID();
-    alloc->Put(SYNC_KEY + node_id, &node_id, sizeof(int));
-    for (int i = 1; i <= no_node; i++)
+    if (is_master)
     {
-        alloc->Get(SYNC_KEY + i, &id);
-        epicAssert(id == i);
+        Create_master(&conf);
+        for (int i = 0; i < local_thread_num; ++i)
+        {
+            Create_worker(&conf);
+        }
+        for (int i = 0; i < local_thread_num; ++i)
+        {
+            alloc_array[i] = new GAlloc(worker[i]);
+        }
+        for (int i = 0; i < local_thread_num; ++i)
+        {
+            printf("worker i de id = %d \n", alloc_array[i]->GetID());
+            fflush(stdout);
+        }
     }
+
+    else
+    {
+        justsetconf(&conf);
+        for (int i = 0; i < local_thread_num; ++i)
+        {
+            Create_worker(&conf);
+        }
+
+        for (int i = 0; i < local_thread_num; ++i)
+        {
+            alloc_array[i] = new GAlloc(worker[i]);
+        }
+        for (int i = 0; i < local_thread_num; ++i)
+        {
+            printf("worker i de id = %d \n", alloc_array[i]->GetID());
+            fflush(stdout);
+        }
+    }
+
+    Synchro_zero();
 
     if (no_run == 1)
     {
         if (is_master)
         {
-            // particle_array_msiInput = Malloc_addr(wh[0], sizeof(Particle) * number_of_particles, Msi, 1);
-            particle_array_msiInput = alloc->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
-            printf("particle_array_msiInput=%lx\n", particle_array_msiInput);
+            particle_array_msiInput = alloc_array[0]->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
+#ifdef Print_Hint
+            printf("master, particle_array_msiInput=%lx\n", particle_array_msiInput);
+#endif
             Particle_array_initialize(particle_array_msiInput, number_of_particles);
-            alloc->Put(141, &particle_array_msiInput, sizeof(GAddr));
+            alloc_array[0]->Put(141, &particle_array_msiInput, sizeof(GAddr));
         }
         else
         {
-            printf("begin slave\n");
-            alloc->Get(141, &particle_array_msiInput);
-            printf("particle_array_msiInput=%lx\n", particle_array_msiInput);
+
+            alloc_array[0]->Get(141, &particle_array_msiInput);
+#ifdef Print_Hint
+            printf("salve id = %d, particle_array_msiInput=%lx\n", node_id, particle_array_msiInput);
+#endif
         }
 
-        alloc->Put(SYNC_KEY * 2 + node_id, &node_id, sizeof(int));
-        for (int i = 1; i <= no_node; i++)
-        {
-            alloc->Get(SYNC_KEY * 2 + i, &id);
-            epicAssert(id == i);
-        }
+        Synchro_zero();
 
         Solve_MSI();
     }
     else if (no_run == 2)
     {
-        // particle_array_rcInput = Malloc_addr(wh[0], sizeof(Particle) * number_of_particles, Msi, 1);
         if (is_master)
         {
-            particle_array_rcInput = alloc->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
-            printf("particle_array_rcInput=%lx\n", particle_array_rcInput);
+            particle_array_rcInput = alloc_array[0]->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
+#ifdef Print_Hint
+            printf("master, particle_array_rcInput=%lx\n", particle_array_rcInput);
+#endif
             Particle_array_initialize(particle_array_rcInput, number_of_particles);
-            alloc->Put(143, &particle_array_rcInput, sizeof(GAddr));
+            alloc_array[0]->Put(143, &particle_array_rcInput, sizeof(GAddr));
         }
         else
         {
-            printf("begin slave\n");
-            alloc->Get(143, &particle_array_rcInput);
-            printf("particle_array_rcInput=%lx\n", particle_array_rcInput);
+            alloc_array[0]->Get(143, &particle_array_rcInput);
+
+#ifdef Print_Hint
+            printf("salve id = %d, particle_array_rcInput=%lx\n", node_id, particle_array_rcInput);
+#endif
         }
+
+        Synchro_zero();
 
         Solve_RC();
     }
@@ -1182,31 +1351,57 @@ int main(int argc, char **argv)
     {
         if (is_master)
         {
-            particle_array_msiInput = alloc->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
-            particle_array_rcInput = alloc->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
-            printf("particle_array_msiInput=%lx\n", particle_array_msiInput);
-            printf("particle_array_rcInput=%lx\n", particle_array_rcInput);
+            particle_array_msiInput = alloc_array[0]->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
+            particle_array_rcInput = alloc_array[0]->AlignedMalloc(sizeof(Particle) * number_of_particles, Msi, 1);
+#ifdef Print_Hint
+            printf("master, particle_array_msiInput=%lx, particle_array_rcInput=%lx\n", particle_array_msiInput, particle_array_rcInput);
+#endif
             Particle_array_initialize(particle_array_msiInput, number_of_particles);
             Particle tmp[number_of_particles];
-            // Read_val(wh[0], particle_array_msiInput, tmp, sizeof(Particle) * number_of_particles);
-            // Write_val(wh[0], particle_array_rcInput, tmp, sizeof(Particle) * number_of_particles, 1);
-            alloc->Read(particle_array_msiInput, tmp, sizeof(Particle) * number_of_particles);
-            alloc->Write(particle_array_rcInput, tmp, sizeof(Particle) * number_of_particles, 1);
-            alloc->Put(141, &particle_array_msiInput, sizeof(GAddr));
-            alloc->Put(143, &particle_array_rcInput, sizeof(GAddr));
+            alloc_array[0]->Read(particle_array_msiInput, tmp, sizeof(Particle) * number_of_particles);
+            alloc_array[0]->Write(particle_array_rcInput, tmp, sizeof(Particle) * number_of_particles, 1);
+            alloc_array[0]->Put(9141, &particle_array_msiInput, sizeof(GAddr));
+            alloc_array[0]->Put(9143, &particle_array_rcInput, sizeof(GAddr));
         }
         else
         {
-            printf("begin slave\n");
-            alloc->Get(141, &particle_array_msiInput);
-            alloc->Get(143, &particle_array_rcInput);
-            printf("particle_array_msiInput=%lx\n", particle_array_msiInput);
-            printf("particle_array_rcInput=%lx\n", particle_array_rcInput);
+
+            alloc_array[0]->Get(9141, &particle_array_msiInput);
+            alloc_array[0]->Get(9143, &particle_array_rcInput);
+#ifdef Print_Hint
+            printf("salve id = %d, particle_array_msiInput=%lx, particle_array_rcInput=%lx\n", node_id, particle_array_msiInput, particle_array_rcInput);
+#endif
+
+            // Particle tmp1[number_of_particles], tmp2[number_of_particles];
+            // alloc_array[0]->Read(particle_array_msiInput, tmp1, sizeof(Particle) * number_of_particles);
+            // alloc_array[0]->Read(particle_array_rcInput, tmp2, sizeof(Particle) * number_of_particles);
+
+            // for (int i = 0; i < number_of_particles; i++)
+            // {
+            //     epicAssert(tmp1[i].position_x == tmp2[i].position_x);
+            //     epicAssert(tmp1[i].position_y == tmp2[i].position_y);
+            //     epicAssert(tmp1[i].position_z == tmp2[i].position_z);
+            //     epicAssert(tmp1[i].velocity_x == tmp2[i].velocity_x);
+            //     epicAssert(tmp1[i].velocity_y == tmp2[i].velocity_y);
+            //     epicAssert(tmp1[i].velocity_z == tmp2[i].velocity_z);
+            //     epicAssert(tmp1[i].mass == tmp2[i].mass);
+            // }
         }
 
+        Synchro_zero();
+
         Solve_MSI();
+
+        Synchro_zero();
+
         Solve_RC();
     }
+    // // 回收内存
+    // alloc_array[0]->Free(particle_array_msiInput);
+    // alloc_array[0]->Free(particle_array_rcInput);
+    // alloc_array[0]->Free(particle_array_msiOutput);
+    // alloc_array[0]->Free(particle_array_rcOutput);
+    sleep(10);
 
-    return PROGRAM_SUCCESS_CODE;
+    return 0;
 }

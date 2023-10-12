@@ -166,26 +166,24 @@ class Worker : public Server
 #endif
 
 public:
+#ifdef RC_VERSION2
+#else
   boost::lockfree::queue<GAddr> to_flush_list1;
   boost::lockfree::queue<GAddr> to_flush_list2;
   boost::lockfree::queue<GAddr> to_flush_list3;
   boost::lockfree::queue<GAddr> to_flush_list4;
 
-  // map
   unordered_map<int, boost::lockfree::queue<GAddr> *> to_flush_list{
       {1, &to_flush_list1},
       {2, &to_flush_list2},
       {3, &to_flush_list3},
       {4, &to_flush_list4}};
 
+  atomic<bool> flush_done[100];
+  atomic<bool> is_acquired[100];
   int flush_size[100];
 
-  atomic<bool> flush_done[100];
-  atomic<bool> flush_list_empty[100];
-
-  atomic<bool> is_acquired[100];
-
-  atomic<bool> is_complete[100];
+#endif
 
   atomic<Size> no_cache_miss_;
   atomic<Size> no_cache_exist_;
@@ -198,6 +196,7 @@ public:
   atomic<Size> no_cache_state_dirty_;
   atomic<Size> no_cache_state_shared_;
 
+  // number of local reads absorbed by the cache
   atomic<Size> no_local_reads_;
   atomic<Size> no_local_reads_hit_;
 
@@ -214,7 +213,15 @@ public:
   atomic<Size> no_remote_writes_hit_;
   atomic<Size> no_remote_writes_direct_hit_;
 
-  atomic<Size> no_initAcquire_;
+  atomic<Size> read_I;
+  atomic<Size> read_SorM;
+  atomic<Size> write_IorS;
+  atomic<Size> write_M;
+
+  atomic<Size> read_rc_hit;
+  atomic<Size> write_rc_hit;
+  atomic<Size> read_rc_miss;
+  atomic<Size> write_rc_miss;
 
   // logging
   void logWrite(GAddr addr, Size sz, const void *content)
@@ -372,7 +379,8 @@ public:
     if (flag & RC_Write_shared) // 用来标记基于释放一致性的写共享策略
       return DataState::RC_WRITE_SHARED;
 #ifdef B_I
-    if (flag & b_i) return DataState::BI;
+    if (flag & b_i)
+      return DataState::BI;
 #endif
     return DataState::MSI;
   }
@@ -383,37 +391,44 @@ public:
 
 #ifdef SUB_BLOCK
   // sub_block
-  void ProcessRemoteSubRead(Client* client, WorkRequest* wr);
-  void ProcessRemoteSubReadCache(Client* client, WorkRequest* wr);
-  void ProcessRemoteSubReadReply(Client* client, WorkRequest* wr);
-  void ProcessRemoteSubWrite(Client* client, WorkRequest* wr);
-  void ProcessRemoteSubWriteCache(Client* client, WorkRequest* wr);
-  void ProcessRemoteSubWriteReply(Client* client, WorkRequest* wr);
+  void ProcessRemoteSubRead(Client *client, WorkRequest *wr);
+  void ProcessRemoteSubReadCache(Client *client, WorkRequest *wr);
+  void ProcessRemoteSubReadReply(Client *client, WorkRequest *wr);
+  void ProcessRemoteSubWrite(Client *client, WorkRequest *wr);
+  void ProcessRemoteSubWriteCache(Client *client, WorkRequest *wr);
+  void ProcessRemoteSubWriteReply(Client *client, WorkRequest *wr);
 #endif
 
 #ifdef DYNAMIC
-  int RevGetstate (DataState Curs) {
-    if (Curs == DataState::WRITE_SHARED) return Write_shared;
-    else if (Curs == DataState::ACCESS_EXCLUSIVE) return Access_exclusive;
-    else if (Curs == DataState::MSI) return Msi;
-    else if (Curs == DataState::READ_MOSTLY) return Read_mostly;
-    else if (Curs == DataState::READ_ONLY) return Read_only;
-    else if (Curs == DataState::WRITE_EXCLUSIVE) return Write_exclusive;
+  int RevGetstate(DataState Curs)
+  {
+    if (Curs == DataState::WRITE_SHARED)
+      return Write_shared;
+    else if (Curs == DataState::ACCESS_EXCLUSIVE)
+      return Access_exclusive;
+    else if (Curs == DataState::MSI)
+      return Msi;
+    else if (Curs == DataState::READ_MOSTLY)
+      return Read_mostly;
+    else if (Curs == DataState::READ_ONLY)
+      return Read_only;
+    else if (Curs == DataState::WRITE_EXCLUSIVE)
+      return Write_exclusive;
   }
-  void ChangeDir (GAddr addr, DataState CurState);
-  void ProcessRemoteChange(Client * client, WorkRequest * wr);
-  void ProcessPendingChange(Client * client, WorkRequest * wr);
+  void ChangeDir(GAddr addr, DataState CurState);
+  void ProcessRemoteChange(Client *client, WorkRequest *wr);
+  void ProcessPendingChange(Client *client, WorkRequest *wr);
   void StartChange(GAddr addr, DataState CurState);
 #endif
 
 #ifdef B_I
-  void ProcessRemoteBIWrite(Client * client, WorkRequest * wr);
-  void ProcessRemoteBIRead(Client * client, WorkRequest * wr);
-  void ProcessRemoteBIInv(Client * client, WorkRequest * wr);
-  void ProcessRemoteBIInform(Client * client, WorkRequest * wr);
-  void ProcessPendingBIRead(Client * client, WorkRequest * wr);
-  void ProcessPendingBIWrite(Client * client, WorkRequest * wr);
-  void UpdateVersion(DirEntry * Entry, GAddr addr);
+  void ProcessRemoteBIWrite(Client *client, WorkRequest *wr);
+  void ProcessRemoteBIRead(Client *client, WorkRequest *wr);
+  void ProcessRemoteBIInv(Client *client, WorkRequest *wr);
+  void ProcessRemoteBIInform(Client *client, WorkRequest *wr);
+  void ProcessPendingBIRead(Client *client, WorkRequest *wr);
+  void ProcessPendingBIWrite(Client *client, WorkRequest *wr);
+  void UpdateVersion(DirEntry *Entry, GAddr addr);
 #endif
 
   /* add ergeda add */
@@ -444,11 +459,14 @@ public:
     return (void *)((char *)temp1 + offset);
   }
 
+#ifdef RC_VERSION2
+#else
   inline void AddToFlushList(int id, GAddr addr)
   {
     to_flush_list[id]->push(addr);
     epicLog(LOG_DEBUG, "AddToFlushList(%d,%lx)\n", id, addr);
   }
+#endif
 
   /* add wpq add */
 
@@ -630,6 +648,7 @@ public:
     server = new Worker(conf);
     return server;
   }
+
   ~WorkerFactory()
   {
     if (server)
