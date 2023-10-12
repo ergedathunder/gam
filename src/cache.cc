@@ -473,6 +473,9 @@ int Cache::ReadWrite(WorkRequest *wr)
       if (cline) state = cline->state;
       if (state != CACHE_INVALID) { //原本存在cache
         if (state == CACHE_TO_INVALID && READ == wr->op) {
+#ifdef B_I
+          worker->read_hit += 1;
+#endif
           epicLog(LOG_INFO, "cache is going to be invalid, but still usable for read op = %d", wr->op);
           GAddr gs = i > start ? i : start;
           epicAssert(GMINUS(nextb, gs) > 0);
@@ -490,6 +493,9 @@ int Cache::ReadWrite(WorkRequest *wr)
         //for WRITE, cannot allow since it may dirty the cacheline before
         //it finished transmission
         if (state == CACHE_TO_DIRTY && READ == wr->op && IsBlockLocked(cline)) {
+#ifdef B_I
+          worker->read_hit += 1;
+#endif
           epicAssert(!IsBlockWLocked(cline));
           epicLog(
               LOG_INFO, "cache is going from shared to dirty, but still usable for read op = %d", wr->op);
@@ -536,6 +542,9 @@ int Cache::ReadWrite(WorkRequest *wr)
         //we can copy the data immediately since it will not be over-written by remote node
         //and also allow following read ops get the latest data
         if (READ == wr->op) {
+#ifdef B_I
+          worker->read_hit += 1;
+#endif
           memcpy(ls, cs, len);
   /*
   #ifdef USE_LRU
@@ -545,6 +554,9 @@ int Cache::ReadWrite(WorkRequest *wr)
   */
         } else if (WRITE == wr->op) {
           if (state != CACHE_DIRTY) {
+#ifdef B_I
+            worker->write_miss += 1;
+#endif
             wr->is_cache_hit_ = false;
             WorkRequest* lwr = new WorkRequest(*wr);
             lwr->counter = 0;
@@ -578,6 +590,9 @@ int Cache::ReadWrite(WorkRequest *wr)
 */
             worker->SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
           } else {
+#ifdef B_I
+              worker->write_hit += 1;
+#endif
               epicAssert(len);
               worker->logWrite(wr->addr, len, ls);
               memcpy(cs, ls, len);
@@ -621,9 +636,15 @@ int Cache::ReadWrite(WorkRequest *wr)
         wr->counter++;
         //to intermediate state
         if (READ == wr->op) {
+#ifdef B_I
+          worker->read_miss += 1;
+#endif
           epicAssert(cline->state != CACHE_TO_SHARED);
           ToToShared(cline);
         } else {  //WRITE
+#ifdef B_I
+          worker->write_miss += 1;
+#endif
           epicAssert(cline->state != CACHE_TO_DIRTY);
           ToToDirty(cline);
         }

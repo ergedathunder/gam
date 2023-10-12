@@ -1,0 +1,39 @@
+begin slave,addr_value=11b4dac0
+k = 1024
+k = 512
+k = 256
+k = 128
+k = 64
+k = 32
+k = 16
+k = 8
+k = 4
+k = 2
+read_hit: 4491	read_miss: 117	write_hit: 4268	write_miss: 340	
+read_miss_rate: 0.0253906
+write_miss_rate: 0.0737847
+begin master,addr_value=10000017fe000
+k = 1024
+k = 512
+k = 256
+k = 128
+k = 64
+k = 32
+k = 16
+k = 8
+k = 4
+k = 2
+running time : 10129498
+readbuf[0]=1.878607+0.000000i
+readbuf[1]=1.879237+-0.033996i
+readbuf[2]=1.881048+-0.068088i
+readbuf[3]=1.884197+-0.102360i
+readbuf[4]=1.888412+-0.136919i
+readbuf[5]=1.894115+-0.171835i
+readbuf[6]=1.900891+-0.207255i
+readbuf[7]=1.909180+-0.243227i
+readbuf[8]=1.918649+-0.279896i
+readbuf[9]=1.929643+-0.317357i
+read_hit: 6452	read_miss: 174	write_hit: 6297	write_miss: 329	
+read_miss_rate: 0.0262602
+write_miss_rate: 0.0496529

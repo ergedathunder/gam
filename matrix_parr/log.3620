@@ -1,0 +1,1800 @@
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 3722131099
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 8806), (write_hit: 4185498)
+running time : 3722144923
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 3258647713
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 11347), (write_hit: 4182957)
+running time : 3258666253
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 3715431275
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 13981), (write_hit: 4180323)
+running time : 3715446545
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 6611347487
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 12127), (write_hit: 4182177)
+running time : 6611362958
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 3496002221
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 15394), (write_hit: 4178910)
+running time : 3496021219
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 4252726468
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 0), (write_hit: 4194304)
+running time : 4252762254
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 3996346570
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 0), (write_hit: 4194304)
+running time : 3996379339
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 4177838572
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 0), (write_hit: 4194304)
+running time : 4177856078
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 4121814840
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 0), (write_hit: 4194304)
+running time : 4121828044
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 4154805143
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 0), (write_hit: 4194304)
+running time : 4154821552
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 192) -> (128, 256) 
+worker 1 finish first sync
+Round 1 run time : 3963079603
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 62118), (write_hit: 2035034)
+running time : 3963101208
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 38610), (write_hit: 2058542)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 64) 
+worker 4 finish first sync
+Round 1 run time : 8839260378
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 64188), (write_hit: 2032964)
+running time : 8839279064
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 229123), (write_hit: 1868029)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+worker 4 finish first sync
+(0, 0) -> (128, 64) 
+Round 1 run time : 4808174058
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 74491), (write_hit: 2022661)
+running time : 4808198792
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 20583), (write_hit: 2076569)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 192) -> (128, 256) 
+worker 1 finish first sync
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 82211), (write_hit: 2014941)
+Round 1 run time : 5517682685
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 65031), (write_hit: 2032121)
+running time : 5517697051
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 64) 
+worker 4 finish first sync
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 48742), (write_hit: 2048410)
+Round 1 run time : 4937870772
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 62383), (write_hit: 2034769)
+running time : 4937877433
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 192) -> (128, 256) 
+worker 1 finish first sync
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 128), (write_hit: 2097024)
+Round 1 run time : 2064121864
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 0), (write_hit: 2097152)
+running time : 2064132987
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+worker 4 finish first sync
+(0, 0) -> (128, 64) 
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 128), (write_hit: 2097024)
+Round 1 run time : 2101941391
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 0), (write_hit: 2097152)
+running time : 2101954579
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 3
+
+worker i de id = 1 
+worker i de id = 3 
+node_id = 1
+worker 3 finish first sync
+(0, 128) -> (128, 192) 
+worker 1 finish first sync
+Round 1 run time : 2173977393
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 0), (write_hit: 2097152)
+running time : 2173988499
+worker[3] : (read_miss: 96), (read_hit: 4194208), (write_miss: 128), (write_hit: 2097024)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 192) -> (128, 256) 
+worker 1 finish first sync
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 128), (write_hit: 2097024)
+Round 1 run time : 2052304498
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 0), (write_hit: 2097152)
+running time : 2052310202
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 192) -> (128, 256) 
+worker 1 finish first sync
+worker[4] : (read_miss: 96), (read_hit: 4194208), (write_miss: 128), (write_hit: 2097024)
+Round 1 run time : 2091364128
+worker[1] : (read_miss: 0), (read_hit: 4194304), (write_miss: 0), (write_hit: 2097152)
+running time : 2091373068
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 42) 
+worker 4 finish first sync
+worker 8 finish first sync
+Round 1 run time : 4132298126
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 40414), (write_hit: 1335842)
+running time : 4132323036
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 138953), (write_hit: 1237303)
+worker[8] : (read_miss: 96), (read_hit: 2752416), (write_miss: 1069), (write_hit: 1375187)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+node_id = 1
+worker 4 finish first sync
+(0, 126) -> (128, 168) 
+worker 1 finish first sync
+worker 7 finish first sync
+Round 1 run time : 4464710694
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 39564), (write_hit: 1336692)
+running time : 4464734808
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 62328), (write_hit: 1313928)
+worker[7] : (read_miss: 96), (read_hit: 2752416), (write_miss: 980), (write_hit: 1375276)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 4 finish first sync
+(0, 126) -> (128, 168) 
+worker 8 finish first sync
+worker 1 finish first sync
+Round 1 run time : 6051519379
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 50888), (write_hit: 1325368)
+running time : 6051541032
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 10463), (write_hit: 1365793)
+worker[8] : (read_miss: 96), (read_hit: 2752416), (write_miss: 33744), (write_hit: 1342512)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 4 finish first sync
+(0, 126) -> (128, 168) 
+worker 8 finish first sync
+worker 1 finish first sync
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 34938), (write_hit: 1341318)
+Round 1 run time : 4055905249
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 42247), (write_hit: 1334009)
+running time : 4055929112
+worker[8] : (read_miss: 96), (read_hit: 2752416), (write_miss: 1451), (write_hit: 1374805)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 4 finish first sync
+(0, 126) -> (128, 168) 
+worker 1 finish first sync
+worker 8 finish first sync
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 33144), (write_hit: 1343112)
+Round 1 run time : 4197290500
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 113323), (write_hit: 1262933)
+running time : 4197311534
+worker[8] : (read_miss: 96), (read_hit: 2752416), (write_miss: 877), (write_hit: 1375379)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+node_id = 1
+worker 4 finish first sync
+(0, 126) -> (128, 168) 
+worker 1 finish first sync
+worker 7 finish first sync
+Round 1 run time : 1948688037
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 1526), (write_hit: 1374730)
+running time : 1948706126
+worker[7] : (read_miss: 96), (read_hit: 2752416), (write_miss: 1408), (write_hit: 1374848)
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 1782), (write_hit: 1374474)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 4 finish first sync
+worker 1 finish first sync
+(0, 126) -> (128, 168) 
+worker 8 finish first sync
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 5650), (write_hit: 1370606)
+Round 1 run time : 1738387603
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 12), (write_hit: 1376244)
+running time : 1738395455
+worker[8] : (read_miss: 96), (read_hit: 2752416), (write_miss: 1643), (write_hit: 1374613)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 42) 
+worker 4 finish first sync
+worker 8 finish first sync
+Round 1 run time : 2150143761
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 382), (write_hit: 1375874)
+running time : 2150157784
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 3786), (write_hit: 1372470)
+worker[8] : (read_miss: 96), (read_hit: 2752416), (write_miss: 13479), (write_hit: 1362777)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 8 finish first sync
+(128, 42) -> (256, 84) 
+worker 4 finish first sync
+worker 1 finish first sync
+Round 1 run time : 1980097813
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 3822), (write_hit: 1372434)
+worker[8] : (read_miss: 96), (read_hit: 2752416), (write_miss: 6413), (write_hit: 1369843)
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 1462), (write_hit: 1374794)
+running time : 1980114107
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+node_id = 1
+worker 4 finish first sync
+(0, 126) -> (128, 168) 
+worker 7 finish first sync
+worker 1 finish first sync
+Round 1 run time : 2525243574
+worker[1] : (read_miss: 0), (read_hit: 2752512), (write_miss: 16), (write_hit: 1376240)
+running time : 2525260095
+worker[4] : (read_miss: 96), (read_hit: 2752416), (write_miss: 1514), (write_hit: 1374742)
+worker[7] : (read_miss: 96), (read_hit: 2752416), (write_miss: 181), (write_hit: 1376075)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (128, 32) 
+worker 8 finish first sync
+worker 11 finish first sync
+worker 4 finish first sync
+Round 1 run time : 5578981087
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 42841), (write_hit: 1005735)
+running time : 5579000355
+worker[8] : (read_miss: 96), (read_hit: 2097056), (write_miss: 26449), (write_hit: 1022127)
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1204), (write_hit: 1047372)
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 12824), (write_hit: 1035752)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 11 finish first sync
+(128, 64) -> (256, 96) 
+worker 8 finish first sync
+worker 4 finish first sync
+worker 1 finish first sync
+worker[8] : (read_miss: 96), (read_hit: 2097056), (write_miss: 55994), (write_hit: 992582)
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 140618), (write_hit: 907958)
+Round 1 run time : 5037996419
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 32799), (write_hit: 1015777)
+running time : 5038011751
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1403), (write_hit: 1047173)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+worker i de id = 11 
+node_id = 1
+worker 7 finish first sync
+(0, 192) -> (128, 224) 
+worker 11 finish first sync
+worker 1 finish first sync
+worker 4 finish first sync
+Round 1 run time : 4265468321
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 108044), (write_hit: 940532)
+running time : 4265485562
+worker[7] : (read_miss: 96), (read_hit: 2097056), (write_miss: 72526), (write_hit: 976050)
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 821), (write_hit: 1047755)
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1511), (write_hit: 1047065)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 11 finish first sync
+worker 4 finish first sync
+(128, 64) -> (256, 96) 
+worker 8 finish first sync
+worker 1 finish first sync
+Round 1 run time : 3993361542
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 30054), (write_hit: 1018522)
+running time : 3993372199
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 26727), (write_hit: 1021849)
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 21823), (write_hit: 1026753)
+worker[8] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1504), (write_hit: 1047072)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 8 finish first sync
+worker 11 finish first sync
+(0, 224) -> (128, 256) 
+worker 4 finish first sync
+worker 1 finish first sync
+Round 1 run time : 5778883452
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 32010), (write_hit: 1016566)
+running time : 5778897243
+worker[8] : (read_miss: 96), (read_hit: 2097056), (write_miss: 100720), (write_hit: 947856)
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1441), (write_hit: 1047135)
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 20890), (write_hit: 1027686)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 3
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 3 
+worker i de id = 7 
+worker i de id = 11 
+node_id = 1
+worker 3 finish first sync
+(0, 64) -> (128, 96) 
+worker 7 finish first sync
+worker 1 finish first sync
+worker 11 finish first sync
+worker[3] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1119), (write_hit: 1047457)
+Round 1 run time : 1419035327
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 1478), (write_hit: 1047098)
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1152), (write_hit: 1047424)
+worker[7] : (read_miss: 96), (read_hit: 2097056), (write_miss: 394), (write_hit: 1048182)
+running time : 1419041788
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 8 finish first sync
+(0, 224) -> (128, 256) 
+worker 11 finish first sync
+worker 4 finish first sync
+worker 1 finish first sync
+Round 1 run time : 1617069417
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1003), (write_hit: 1047573)
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 4024), (write_hit: 1044552)
+running time : 1617102907
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 18270), (write_hit: 1030306)
+worker[8] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1097), (write_hit: 1047479)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 4 finish first sync
+worker 8 finish first sync
+(0, 96) -> (128, 128) 
+worker 11 finish first sync
+worker 1 finish first sync
+Round 1 run time : 1515598694
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 1132), (write_hit: 1047444)
+running time : 1515619188
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 13133), (write_hit: 1035443)
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1324), (write_hit: 1047252)
+worker[8] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1228), (write_hit: 1047348)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 8 finish first sync
+worker 11 finish first sync
+(0, 224) -> (128, 256) 
+worker 4 finish first sync
+worker 1 finish first sync
+worker[8] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1717), (write_hit: 1046859)
+Round 1 run time : 2209087539
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 2851), (write_hit: 1045725)
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 1171), (write_hit: 1047405)
+running time : 2209095745
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1455), (write_hit: 1047121)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+worker i de id = 11 
+node_id = 1
+worker 7 finish first sync
+(0, 192) -> (128, 224) 
+worker 11 finish first sync
+worker 4 finish first sync
+worker 1 finish first sync
+Round 1 run time : 2295330522
+worker[1] : (read_miss: 0), (read_hit: 2097152), (write_miss: 624), (write_hit: 1047952)
+running time : 2295347990
+worker[4] : (read_miss: 96), (read_hit: 2097056), (write_miss: 2236), (write_hit: 1046340)
+worker[11] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1032), (write_hit: 1047544)
+worker[7] : (read_miss: 96), (read_hit: 2097056), (write_miss: 1021), (write_hit: 1047555)
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 25456140690
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 52946), (write_hit: 33501486)
+running time : 25456158499
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 25496240200
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 17669), (write_hit: 33536763)
+running time : 25496276532
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 26321315395
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 12513), (write_hit: 33541919)
+running time : 26321354465
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 27081320374
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 25441), (write_hit: 33528991)
+running time : 27081368588
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 25935218738
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 22930), (write_hit: 33531502)
+running time : 25935236428
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 34027757508
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 0), (write_hit: 33554432)
+running time : 34027784278
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 34017655108
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 0), (write_hit: 33554432)
+running time : 34017679681
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 34154803453
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 0), (write_hit: 33554432)
+running time : 34154829445
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 34085777440
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 0), (write_hit: 33554432)
+running time : 34085791851
+node 0 has 1 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 256) 
+Round 1 run time : 34170256331
+worker[1] : (read_miss: 0), (read_hit: 67108864), (write_miss: 0), (write_hit: 33554432)
+running time : 34170283825
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 384) -> (256, 512) 
+worker 1 finish first sync
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 64541), (write_hit: 16712675)
+Round 1 run time : 19924646298
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 101948), (write_hit: 16675268)
+running time : 19924650578
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 128) 
+worker 4 finish first sync
+Round 1 run time : 31576723050
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 125945), (write_hit: 16651271)
+running time : 31576738930
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 73106), (write_hit: 16704110)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 384) -> (256, 512) 
+worker 1 finish first sync
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 330155), (write_hit: 16447061)
+Round 1 run time : 20503816784
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 114298), (write_hit: 16662918)
+running time : 20503824957
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 128) 
+worker 4 finish first sync
+Round 1 run time : 21487117900
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 101714), (write_hit: 16675502)
+running time : 21487136461
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 254938), (write_hit: 16522278)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 384) -> (256, 512) 
+worker 1 finish first sync
+Round 1 run time : 18983390911
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 114819), (write_hit: 16662397)
+running time : 18983406110
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 51905), (write_hit: 16725311)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 128) 
+worker 4 finish first sync
+Round 1 run time : 17567281222
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 0), (write_hit: 16777216)
+running time : 17567300726
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 512), (write_hit: 16776704)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 3
+
+worker i de id = 1 
+worker i de id = 3 
+node_id = 1
+worker 3 finish first sync
+(0, 256) -> (256, 384) 
+worker 1 finish first sync
+Round 1 run time : 18271319285
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 0), (write_hit: 16777216)
+running time : 18271337413
+worker[3] : (read_miss: 384), (read_hit: 33554048), (write_miss: 512), (write_hit: 16776704)
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 384) -> (256, 512) 
+worker 1 finish first sync
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 512), (write_hit: 16776704)
+Round 1 run time : 17268131790
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 0), (write_hit: 16777216)
+running time : 17268141529
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+worker 4 finish first sync
+(0, 0) -> (256, 128) 
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 512), (write_hit: 16776704)
+Round 1 run time : 17609041946
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 0), (write_hit: 16777216)
+running time : 17609047675
+node 0 has 2 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+worker i de id = 1 
+worker i de id = 4 
+node_id = 1
+worker 4 finish first sync
+(0, 384) -> (256, 512) 
+worker 1 finish first sync
+Round 1 run time : 17592085959
+worker[1] : (read_miss: 0), (read_hit: 33554432), (write_miss: 0), (write_hit: 16777216)
+running time : 17592101136
+worker[4] : (read_miss: 384), (read_hit: 33554048), (write_miss: 512), (write_hit: 16776704)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 8 finish first sync
+(256, 85) -> (512, 170) 
+worker 4 finish first sync
+worker 1 finish first sync
+Round 1 run time : 13436711601
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 124733), (write_hit: 11016387)
+running time : 13436734972
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 30471), (write_hit: 11110649)
+worker[8] : (read_miss: 384), (read_hit: 22281856), (write_miss: 3973), (write_hit: 11137147)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+node_id = 1
+worker 7 finish first sync
+(256, 0) -> (512, 85) 
+worker 4 finish first sync
+worker 1 finish first sync
+worker[7] : (read_miss: 384), (read_hit: 22281856), (write_miss: 47736), (write_hit: 11093384)
+Round 1 run time : 14907431292
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 96187), (write_hit: 11044933)
+running time : 14907441143
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 18347), (write_hit: 11122773)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 4 finish first sync
+(0, 255) -> (256, 340) 
+worker 1 finish first sync
+worker 8 finish first sync
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 146511), (write_hit: 10994609)
+Round 1 run time : 17016940027
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 85052), (write_hit: 11056068)
+running time : 17016957928
+worker[8] : (read_miss: 384), (read_hit: 22281856), (write_miss: 2647), (write_hit: 11138473)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+node_id = 1
+worker 7 finish first sync
+(256, 0) -> (512, 85) 
+worker 4 finish first sync
+worker 1 finish first sync
+Round 1 run time : 15462815386
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 96045), (write_hit: 11045075)
+running time : 15462840620
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 13842), (write_hit: 11127278)
+worker[7] : (read_miss: 384), (read_hit: 22281856), (write_miss: 39879), (write_hit: 11101241)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 8 finish first sync
+(256, 85) -> (512, 170) 
+worker 4 finish first sync
+worker 1 finish first sync
+Round 1 run time : 17993216656
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 104208), (write_hit: 11036912)
+running time : 17993237792
+worker[8] : (read_miss: 384), (read_hit: 22281856), (write_miss: 305153), (write_hit: 10835967)
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 21481), (write_hit: 11119639)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+node_id = 1
+worker 4 finish first sync
+(0, 255) -> (256, 340) 
+worker 7 finish first sync
+worker 1 finish first sync
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 3907), (write_hit: 11137213)
+Round 1 run time : 14172878738
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 15), (write_hit: 11141105)
+running time : 14172884707
+worker[7] : (read_miss: 384), (read_hit: 22281856), (write_miss: 1664), (write_hit: 11139456)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 4 finish first sync
+worker 1 finish first sync
+(0, 255) -> (256, 340) 
+worker 8 finish first sync
+Round 1 run time : 15588539363
+worker[8] : (read_miss: 384), (read_hit: 22281856), (write_miss: 2305), (write_hit: 11138815)
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 6539), (write_hit: 11134581)
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 14), (write_hit: 11141106)
+running time : 15588564494
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 1 finish first sync
+worker 8 finish first sync
+(0, 0) -> (256, 85) 
+worker 4 finish first sync
+Round 1 run time : 12584846283
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 879), (write_hit: 11140241)
+running time : 12584866084
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 1939), (write_hit: 11139181)
+worker[8] : (read_miss: 384), (read_hit: 22281856), (write_miss: 11862), (write_hit: 11129258)
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 4 finish first sync
+(0, 255) -> (256, 340) 
+worker 8 finish first sync
+worker 1 finish first sync
+worker[8] : (read_miss: 384), (read_hit: 22281856), (write_miss: 16068), (write_hit: 11125052)
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 5302), (write_hit: 11135818)
+Round 1 run time : 13040213168
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 16), (write_hit: 11141104)
+running time : 13040219783
+node 0 has 3 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+node_id = 1
+worker 4 finish first sync
+(0, 255) -> (256, 340) 
+worker 8 finish first sync
+worker 1 finish first sync
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 6362), (write_hit: 11134758)
+worker[8] : (read_miss: 384), (read_hit: 22281856), (write_miss: 18547), (write_hit: 11122573)
+Round 1 run time : 13158804710
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 12), (write_hit: 11141108)
+running time : 13158843761
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+worker i de id = 11 
+node_id = 1
+worker 7 finish first sync
+(0, 384) -> (256, 448) 
+worker 11 finish first sync
+worker 4 finish first sync
+worker 1 finish first sync
+worker[7] : (read_miss: 384), (read_hit: 16776832), (write_miss: 34642), (write_hit: 8353966)
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 32954), (write_hit: 8355654)
+Round 1 run time : 19592196492
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 76825), (write_hit: 8311783)
+running time : 19592215904
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 14633), (write_hit: 8373975)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 64) 
+worker 4 finish first sync
+worker 8 finish first sync
+worker 11 finish first sync
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 328884), (write_hit: 8059724)
+Round 1 run time : 16367400492
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 191576), (write_hit: 8197032)
+running time : 16367406856
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 336452), (write_hit: 8052156)
+worker[8] : (read_miss: 384), (read_hit: 16776832), (write_miss: 176752), (write_hit: 8211856)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 8 finish first sync
+(0, 448) -> (256, 512) 
+worker 1 finish first sync
+worker 11 finish first sync
+worker 4 finish first sync
+Round 1 run time : 22316684449
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 65400), (write_hit: 8323208)
+running time : 22316701116
+worker[8] : (read_miss: 384), (read_hit: 16776832), (write_miss: 66041), (write_hit: 8322567)
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 47653), (write_hit: 8340955)
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 2835), (write_hit: 8385773)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 1 finish first sync
+(0, 0) -> (256, 64) 
+worker 11 finish first sync
+worker 4 finish first sync
+worker 8 finish first sync
+Round 1 run time : 12867449621
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 72122), (write_hit: 8316486)
+running time : 12867474506
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 53235), (write_hit: 8335373)
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 48345), (write_hit: 8340263)
+worker[8] : (read_miss: 384), (read_hit: 16776832), (write_miss: 12484), (write_hit: 8376124)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 3
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 3 
+worker i de id = 7 
+worker i de id = 11 
+node_id = 1
+worker 7 finish first sync
+(0, 384) -> (256, 448) 
+worker 1 finish first sync
+worker 3 finish first sync
+worker 11 finish first sync
+Round 1 run time : 17687638620
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 65412), (write_hit: 8323196)
+running time : 17687655413
+worker[3] : (read_miss: 384), (read_hit: 16776832), (write_miss: 51555), (write_hit: 8337053)
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 225122), (write_hit: 8163486)
+worker[7] : (read_miss: 384), (read_hit: 16776832), (write_miss: 547231), (write_hit: 7841377)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 11 finish first sync
+(256, 128) -> (512, 192) 
+worker 1 finish first sync
+worker 8 finish first sync
+worker 4 finish first sync
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+Round 1 run time : 9568039751
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 0), (write_hit: 8388608)
+running time : 9568057182
+worker[8] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+worker i de id = 11 
+node_id = 1
+worker 7 finish first sync
+(0, 384) -> (256, 448) 
+worker 4 finish first sync
+worker 11 finish first sync
+worker 1 finish first sync
+Round 1 run time : 9636045487
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 0), (write_hit: 8388608)
+running time : 9636062322
+worker[7] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 11 finish first sync
+(256, 128) -> (512, 192) 
+worker 1 finish first sync
+worker 4 finish first sync
+worker 8 finish first sync
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+worker[8] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+Round 1 run time : 9494595970
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 0), (write_hit: 8388608)
+running time : 9494610831
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 11 finish first sync
+(256, 128) -> (512, 192) 
+worker 8 finish first sync
+worker 4 finish first sync
+worker 1 finish first sync
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+worker[8] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+Round 1 run time : 9537563329
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 0), (write_hit: 8388608)
+running time : 9537577491
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+node 0 has 4 threads
+end get rdma source
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+worker i de id = 11 
+node_id = 1
+worker 8 finish first sync
+(0, 448) -> (256, 512) 
+worker 11 finish first sync
+worker 4 finish first sync
+worker 1 finish first sync
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+worker[8] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 256), (write_hit: 8388352)
+Round 1 run time : 9416076074
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 0), (write_hit: 8388608)
+running time : 9416084828

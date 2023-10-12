@@ -34,18 +34,18 @@ using namespace std;
 /* add xmx add */
 
 /* add dynamic add */
-#define DYNAMIC
-#define DYNAMIC_SECOND
-#define DYNAMIC_DEBUG
+//#define DYNAMIC
+//#define DYNAMIC_SECOND
+//#define DYNAMIC_DEBUG
 #define Time_interval 100000000
 #define Dir_interval 100000
 #define Node_interval 50000
 /* add dynamic add */
 
 /* add B_I add */
-//#define B_I
+#define B_I
 #define Max_version 10
-#define Max_timediff 10000000
+#define Max_timediff 30000000
 /* add B_I add */
 
 /* add debug add */
@@ -90,15 +90,15 @@ using namespace std;
 
 /* add xmx add */
 //#define BLOCK_POWER 8
-//#define BLOCK_POWER 9
+#define BLOCK_POWER 9
 //#define BLOCK_POWER 10
-#define BLOCK_POWER 11
+//#define BLOCK_POWER 11
 //#define BLOCK_POWER 12
 
 //#define BLOCK_MASK 0xFFFFFFFFFFFFFF00L
-//#define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
+#define BLOCK_MASK 0xFFFFFFFFFFFFFE00L
 //#define BLOCK_MASK 0xFFFFFFFFFFFFFC00L
-#define BLOCK_MASK 0xFFFFFFFFFFFFF800L
+//#define BLOCK_MASK 0xFFFFFFFFFFFFF800L
 //#define BLOCK_MASK 0xFFFFFFFFFFFFF000L
 /* add xmx add */
 

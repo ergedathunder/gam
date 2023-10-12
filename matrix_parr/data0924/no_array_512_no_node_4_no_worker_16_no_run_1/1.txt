@@ -1,0 +1,131 @@
+
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 512 --ip_master 10.77.110.155 --ip_worker 10.77.110.155 --port_worker 3620 --is_master 1 --port_master 4020 --no_run 1 --is_read 1
+node 0 has 4 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 512 --ip_master 10.77.110.155 --ip_worker 10.77.110.158 --port_worker 3320 --is_master 0 --port_master 4020 --no_run 1 --is_read 1
+node 1 has 4 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 512 --ip_master 10.77.110.155 --ip_worker 10.77.110.159 --port_worker 3020 --is_master 0 --port_master 4020 --no_run 1 --is_read 1
+node 2 has 4 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 512 --ip_master 10.77.110.155 --ip_worker 10.77.110.160 --port_worker 2720 --is_master 0 --port_master 4020 --no_run 1 --is_read 1
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+node 3 has 4 threads
+end get rdma source
+cur worker_port : 3320
+cur node_id : 2
+
+end get rdma source
+cur worker_port : 3020
+cur node_id : 3
+
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+end get rdma source
+cur worker_port : 2720
+cur node_id : 5
+
+end get rdma source
+cur worker_port : 3310
+cur node_id : 6
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 3010
+cur node_id : 8
+
+end get rdma source
+cur worker_port : 2710
+cur node_id : 9
+
+end get rdma source
+cur worker_port : 3300
+cur node_id : 10
+
+end get rdma source
+cur worker_port : 3590
+cur node_id : 11
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 7 
+worker i de id = 11 
+cur worker_port : 3000
+cur node_id : 12
+
+end get rdma source
+cur worker_port : 2700
+cur node_id : 13
+
+end get rdma source
+cur worker_port : 3290
+cur node_id : 14
+
+worker i de id = 2 
+worker i de id = 6 
+worker i de id = 10 
+worker i de id = 14 
+cur worker_port : 2990
+cur node_id : 15
+
+worker i de id = 3 
+worker i de id = 8 
+worker i de id = 12 
+worker i de id = 15 
+cur worker_port : 2690
+cur node_id : 16
+
+worker i de id = 5 
+worker i de id = 9 
+worker i de id = 13 
+worker i de id = 16 
+node_id = 1
+worker 7 finish first sync
+(0, 384) -> (256, 448) 
+worker 11 finish first sync
+node_id = 3
+worker 12 finish first sync
+(256, 192) -> (512, 256) 
+worker 15 finish first sync
+worker 8 finish first sync
+worker 3 finish first sync
+node_id = 2
+worker 14 finish first sync
+(256, 320) -> (512, 384) 
+worker 6 finish first sync
+worker 2 finish first sync
+worker 10 finish first sync
+node_id = 4
+worker 13 finish first sync
+(256, 256) -> (512, 320) 
+worker 16 finish first sync
+worker 5 finish first sync
+worker 9 finish first sync
+worker 4 finish first sync
+worker 1 finish first sync
+worker[7] : (read_miss: 384), (read_hit: 16776832), (write_miss: 34642), (write_hit: 8353966)
+worker[11] : (read_miss: 384), (read_hit: 16776832), (write_miss: 32954), (write_hit: 8355654)
+Round 1 run time : 19592196492
+worker[1] : (read_miss: 0), (read_hit: 16777216), (write_miss: 76825), (write_hit: 8311783)
+running time : 19592215904
+worker[4] : (read_miss: 384), (read_hit: 16776832), (write_miss: 14633), (write_hit: 8373975)
+worker[6] : (read_miss: 384), (read_hit: 16776832), (write_miss: 63733), (write_hit: 8324875)
+worker[10] : (read_miss: 384), (read_hit: 16776832), (write_miss: 565209), (write_hit: 7823399)
+worker[2] : (read_miss: 384), (read_hit: 16776832), (write_miss: 95721), (write_hit: 8292887)
+worker[13] : (read_miss: 384), (read_hit: 16776832), (write_miss: 48992), (write_hit: 8339616)
+worker[5] : (read_miss: 384), (read_hit: 16776832), (write_miss: 38043), (write_hit: 8350565)
+worker[16] : (read_miss: 384), (read_hit: 16776832), (write_miss: 167612), (write_hit: 8220996)
+worker[9] : (read_miss: 384), (read_hit: 16776832), (write_miss: 217480), (write_hit: 8171128)
+worker[8] : (read_miss: 384), (read_hit: 16776832), (write_miss: 40242), (write_hit: 8348366)
+worker[3] : (read_miss: 384), (read_hit: 16776832), (write_miss: 95864), (write_hit: 8292744)
+worker[15] : (read_miss: 384), (read_hit: 16776832), (write_miss: 80977), (write_hit: 8307631)
+worker[12] : (read_miss: 384), (read_hit: 16776832), (write_miss: 85169), (write_hit: 8303439)
+worker[14] : (read_miss: 384), (read_hit: 16776832), (write_miss: 565355), (write_hit: 7823253)

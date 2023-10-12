@@ -1,0 +1,47 @@
+addr_value=10000013ff000
+Start
+k = 64
+k = 32
+k = 16
+k = 8
+k = 4
+k = 2
+begin slave
+addr_value=10000013ff000
+k = 64
+begin slave
+addr_value=10000013ff000
+k = 64
+k = 32
+k = 16
+k = 8
+k = 4
+k = 2
+begin slave
+addr_value=10000013ff000
+k = 64
+k = 32
+k = 16
+k = 8
+k = 32
+k = 4
+k = 2
+k = 16
+k = 8
+k = 4
+k = 2
+End
+running time : 1458713
+
+
+result:
+readbuf[0]=2.807601+0.000000i
+readbuf[1]=-0.458729+-0.116813i
+readbuf[2]=0.865162+-0.402994i
+readbuf[3]=2.838583+-3.870620i
+readbuf[4]=1.114405+1.533199i
+readbuf[5]=0.328331+1.130449i
+readbuf[6]=2.256970+1.354082i
+readbuf[7]=-0.828369+2.640593i
+readbuf[8]=-11.591551+0.000000i
+readbuf[9]=0.264642+-2.640594i

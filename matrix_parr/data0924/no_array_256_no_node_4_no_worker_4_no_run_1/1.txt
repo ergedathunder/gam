@@ -1,0 +1,47 @@
+
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 256 --ip_master 10.77.110.155 --ip_worker 10.77.110.155 --port_worker 3620 --is_master 1 --port_master 4020 --no_run 1 --is_read 1
+node 0 has 1 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 256 --ip_master 10.77.110.155 --ip_worker 10.77.110.158 --port_worker 3320 --is_master 0 --port_master 4020 --no_run 1 --is_read 1
+node 1 has 1 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 256 --ip_master 10.77.110.155 --ip_worker 10.77.110.159 --port_worker 3020 --is_master 0 --port_master 4020 --no_run 1 --is_read 1
+node 2 has 1 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 256 --ip_master 10.77.110.155 --ip_worker 10.77.110.160 --port_worker 2720 --is_master 0 --port_master 4020 --no_run 1 --is_read 1
+cur worker_port : 3620
+cur node_id : 1
+
+worker i de id = 1 
+node 3 has 1 threads
+end get rdma source
+cur worker_port : 3320
+cur node_id : 2
+
+worker i de id = 2 
+cur worker_port : 3020
+cur node_id : 3
+
+worker i de id = 3 
+cur worker_port : 2720
+cur node_id : 4
+
+worker i de id = 4 
+node_id = 1
+worker 1 finish first sync
+node_id = 2
+worker 2 finish first sync
+node_id = 4
+worker 4 finish first sync
+node_id = 3
+worker 3 finish first sync
+(0, 0) -> (128, 128) 
+Round 1 run time : 3722131099
+worker[1] : (read_miss: 0), (read_hit: 8388608), (write_miss: 8806), (write_hit: 4185498)
+running time : 3722144923
+(0, 128) -> (128, 256) 
+worker[2] : (read_miss: 96), (read_hit: 8388512), (write_miss: 8838), (write_hit: 4185466)
+(128, 128) -> (256, 256) 
+worker[4] : (read_miss: 96), (read_hit: 8388512), (write_miss: 49121), (write_hit: 4145183)
+(128, 0) -> (256, 128) 
+worker[3] : (read_miss: 96), (read_hit: 8388512), (write_miss: 49122), (write_hit: 4145182)

@@ -1,0 +1,63 @@
+
+begin slave,addr_value=0
+k = 8192
+k = 4096
+k = 2048
+k = 1024
+k = 512
+k = 256
+k = 128
+k = 64
+k = 32
+k = 16
+k = 8
+k = 4
+k = 2
+read_hit: 22403	read_miss: 5815	write_hit: 20693	write_miss: 7525	
+read_miss_rate: 0.206074
+write_miss_rate: 0.266674
+begin slave,addr_value=1146ea80
+k = 8192
+k = 4096
+k = 2048
+k = 1024
+k = 512
+k = 256
+k = 128
+k = 64
+k = 32
+k = 16
+k = 8
+k = 4
+k = 2
+read_hit: 27835	read_miss: 5843	write_hit: 27358	write_miss: 6320	
+read_miss_rate: 0.173496
+write_miss_rate: 0.18766
+begin master,addr_value=10000029ea000
+k = 8192
+k = 4096
+k = 2048
+k = 1024
+k = 512
+k = 256
+k = 128
+k = 64
+k = 32
+k = 16
+k = 8
+k = 4
+k = 2
+running time : 302421346
+readbuf[0]=4.118468+0.000000i
+readbuf[1]=4.118424+0.002880i
+readbuf[2]=4.118751+0.005734i
+readbuf[3]=4.118561+0.009299i
+readbuf[4]=4.119277+0.011493i
+readbuf[5]=4.119393+0.014021i
+readbuf[6]=4.119744+0.015652i
+readbuf[7]=4.118952+0.021985i
+readbuf[8]=4.120956+0.022961i
+readbuf[9]=4.118792+0.023458i
+read_hit: 46044	read_miss: 6636	write_hit: 43207	write_miss: 9473	
+read_miss_rate: 0.125968
+write_miss_rate: 0.179822

@@ -346,7 +346,7 @@ public:
     }
 #ifdef SUB_BLOCK
     if (Cur_state == WRITE_SHARED) {
-      int Divide = 1;
+      int Divide = 16;
       int CurSize = (BLOCK_SIZE / Divide);
 
       entry->MySize = CurSize;
@@ -361,7 +361,9 @@ public:
         CurEntry->owner = Owner;
         dir[CurStart] = CurEntry;
         CurEntry->MySize = CurSize;
+#ifdef DYNAMIC
         CurEntry->MetaVersion = 1;
+#endif
       }
     }
     else entry->MySize = BLOCK_SIZE;

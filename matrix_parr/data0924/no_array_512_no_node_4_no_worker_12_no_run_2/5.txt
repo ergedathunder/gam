@@ -1,0 +1,103 @@
+
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 512 --ip_master 10.77.110.155 --ip_worker 10.77.110.155 --port_worker 3620 --is_master 1 --port_master 4020 --no_run 2 --is_read 1
+node 0 has 3 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 512 --ip_master 10.77.110.155 --ip_worker 10.77.110.158 --port_worker 3320 --is_master 0 --port_master 4020 --no_run 2 --is_read 1
+node 1 has 3 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 512 --ip_master 10.77.110.155 --ip_worker 10.77.110.159 --port_worker 3020 --is_master 0 --port_master 4020 --no_run 2 --is_read 1
+node 2 has 3 threads
+end get rdma source
+/home/xeg/last/gam/matrix_parr/matrix_parr --no_node 4 --no_array 512 --ip_master 10.77.110.155 --ip_worker 10.77.110.160 --port_worker 2720 --is_master 0 --port_master 4020 --no_run 2 --is_read 1
+cur worker_port : 3620
+cur node_id : 1
+
+end get rdma source
+node 3 has 3 threads
+end get rdma source
+cur worker_port : 3320
+cur node_id : 2
+
+end get rdma source
+cur worker_port : 3020
+cur node_id : 3
+
+end get rdma source
+cur worker_port : 3610
+cur node_id : 4
+
+end get rdma source
+cur worker_port : 2720
+cur node_id : 5
+
+end get rdma source
+cur worker_port : 3310
+cur node_id : 6
+
+end get rdma source
+cur worker_port : 3010
+cur node_id : 7
+
+end get rdma source
+cur worker_port : 3600
+cur node_id : 8
+
+worker i de id = 1 
+worker i de id = 4 
+worker i de id = 8 
+cur worker_port : 2710
+cur node_id : 9
+
+end get rdma source
+cur worker_port : 3300
+cur node_id : 10
+
+worker i de id = 2 
+worker i de id = 6 
+worker i de id = 10 
+cur worker_port : 3000
+cur node_id : 11
+
+worker i de id = 3 
+worker i de id = 7 
+worker i de id = 11 
+cur worker_port : 2700
+cur node_id : 12
+
+worker i de id = 5 
+worker i de id = 9 
+worker i de id = 12 
+node_id = 1
+worker 4 finish first sync
+node_id = 4
+worker 12 finish first sync
+node_id = 2
+worker 10 finish first sync
+(256, 255) -> (512, 340) 
+worker 2 finish first sync
+worker 6 finish first sync
+(256, 425) -> (512, 510) 
+worker 9 finish first sync
+worker 5 finish first sync
+node_id = 3
+worker 7 finish first sync
+(256, 0) -> (512, 85) 
+worker 11 finish first sync
+worker 3 finish first sync
+(0, 255) -> (256, 340) 
+worker 8 finish first sync
+worker 1 finish first sync
+worker[4] : (read_miss: 384), (read_hit: 22281856), (write_miss: 6362), (write_hit: 11134758)
+worker[8] : (read_miss: 384), (read_hit: 22281856), (write_miss: 18547), (write_hit: 11122573)
+Round 1 run time : 13158804710
+worker[1] : (read_miss: 0), (read_hit: 22282240), (write_miss: 12), (write_hit: 11141108)
+running time : 13158843761
+worker[2] : (read_miss: 384), (read_hit: 22281856), (write_miss: 19663), (write_hit: 11121457)
+worker[10] : (read_miss: 384), (read_hit: 22281856), (write_miss: 61864), (write_hit: 11079256)
+worker[6] : (read_miss: 384), (read_hit: 22281856), (write_miss: 737), (write_hit: 11140383)
+worker[5] : (read_miss: 384), (read_hit: 22281856), (write_miss: 6266), (write_hit: 11134854)
+worker[9] : (read_miss: 384), (read_hit: 22281856), (write_miss: 4859), (write_hit: 11136261)
+worker[12] : (read_miss: 384), (read_hit: 22281856), (write_miss: 512), (write_hit: 11140608)
+worker[7] : (read_miss: 384), (read_hit: 22281856), (write_miss: 14290), (write_hit: 11126830)
+worker[3] : (read_miss: 384), (read_hit: 22281856), (write_miss: 19719), (write_hit: 11121401)
+worker[11] : (read_miss: 384), (read_hit: 22281856), (write_miss: 61529), (write_hit: 11079591)

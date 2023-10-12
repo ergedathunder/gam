@@ -213,6 +213,9 @@ int Worker::ProcessLocalRead(WorkRequest *wr)
 #endif
 
           if (unlikely(s == DIR_DIRTY)) {
+#ifdef B_I
+            read_miss += 1;
+#endif
             WorkRequest* lwr = new WorkRequest(*wr);
             lwr->counter = 0;
             GAddr rc = directory.GetSList(entry).front();  //only one worker is updating this line
@@ -230,6 +233,9 @@ int Worker::ProcessLocalRead(WorkRequest *wr)
             directory.ToToShared(entry, rc);
             SubmitRequest(cli, lwr, ADD_TO_PENDING | REQUEST_SEND);
           } else {
+#ifdef B_I
+            read_hit += 1;
+#endif
             GAddr gs = i > start ? i : start;
             void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
             int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
@@ -632,6 +638,9 @@ int Worker::ProcessLocalWrite(WorkRequest *wr)
           CollectStats(entry, Cur_gs, i, (wr->op == READ) );
 #endif
           if (state == DIR_DIRTY || state == DIR_SHARED) {
+#ifdef B_I
+            write_miss += 1;
+#endif
             list<GAddr>& shared = directory.GetSList(entry);
             WorkRequest* lwr = new WorkRequest(*wr);
             lwr->counter = 0;
@@ -668,6 +677,9 @@ int Worker::ProcessLocalWrite(WorkRequest *wr)
               //lwr->counter++;
             }
           } else {
+#ifdef B_I
+              write_hit += 1;
+#endif
               GAddr gs = i > start ? i : start;
               void* ls = (void*) ((ptr_t) wr->ptr + GMINUS(gs, start));
               int len = nextb > end ? GMINUS(end, gs) : GMINUS(nextb, gs);
