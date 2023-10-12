@@ -107,7 +107,14 @@ int Cache::ReadWrite(WorkRequest *wr)
     DataState Cur_Dstate = worker->directory.GetDataState(Entry);
     GAddr Cur_owner = worker->directory.GetOwner(Entry);
 
-    if (Cur_Dstate != WRITE_EXCLUSIVE)
+#ifdef DYNAMIC_SECOND
+    if (Cur_Dstate != DataState::WRITE_SHARED) {
+      GAddr Cur_gs = i > start ? i : start;
+      worker->CollectStats(Entry, Cur_gs, i, (wr->op == READ) );
+    }
+#endif
+
+    if (Cur_Dstate != WRITE_EXCLUSIVE) //???
       worker->directory.unlock((void *)i);
     if (Cur_Dstate == DataState::ACCESS_EXCLUSIVE)
     {
@@ -457,6 +464,10 @@ int Cache::ReadWrite(WorkRequest *wr)
         i = nextb;
         continue;
       }
+#ifdef DYNAMIC_SECOND
+      GAddr Cur_gs = i > start ? i : start;
+      worker->CollectStats(Entry, Cur_gs, i, (wr->op == READ) );
+#endif
 
       lock(i);
       CacheLine *cline = nullptr;
@@ -558,6 +569,9 @@ int Cache::ReadWrite(WorkRequest *wr)
             lwr->counter = 0;
             lwr->op = WRITE_PERMISSION_ONLY;
             lwr->flag |= CACHED;
+#ifdef DYNAMIC
+            lwr->flag |= Write_shared;
+#endif
             lwr->addr = i;
             lwr->size = CurSize; // different
             lwr->ptr = cline->line;
@@ -611,9 +625,12 @@ int Cache::ReadWrite(WorkRequest *wr)
         WorkRequest *lwr = new WorkRequest(*wr);
 
         // newcline++;
-        cline = SetSubline(i, CurSize);
+        if (!cline) cline = SetSubline(i, CurSize);
         lwr->counter = 0;
         lwr->flag |= CACHED;
+#ifdef DYNAMIC
+        lwr->flag |= Write_shared;
+#endif
         lwr->addr = i;
         lwr->size = CurSize;
         lwr->ptr = cline->line;
@@ -981,6 +998,9 @@ int Cache::ReadWrite(WorkRequest *wr)
           lwr->addr = i;
           lwr->size = BLOCK_SIZE;
           lwr->ptr = cline->line; // diff
+#ifdef DYNAMIC_SECOND
+          lwr->Version = Entry->MetaVersion;
+#endif
           if (wr->flag & ASYNC)
           {
             if (!wr->IsACopy())
@@ -1101,6 +1121,9 @@ int Cache::ReadWrite(WorkRequest *wr)
       lwr->addr = i;
       lwr->size = BLOCK_SIZE;
       lwr->ptr = cline->line;
+#ifdef DYNAMIC_SECOND
+      lwr->Version = Entry->MetaVersion;
+#endif
       wr->is_cache_hit_ = false;
       if (wr->flag & ASYNC)
       {

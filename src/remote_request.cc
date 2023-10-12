@@ -261,6 +261,9 @@ void Worker::ProcessRemoteReadType (Client * client, WorkRequest * wr) {
   if (!IsLocal(wr->addr)) {
     epicLog(LOG_WARNING, "bug , cannot get to home_node\n");
   }
+#ifdef DYNAMIC_SECOND
+  //TODO: when in transition state, just wait
+#endif
 
   char buf[100];
   wr->ptr = buf;
@@ -283,6 +286,9 @@ void Worker::ProcessRemoteReadType (Client * client, WorkRequest * wr) {
   /* add xmx add */
 #ifdef SUB_BLOCK
   wr->size += appendInteger(buf + wr->size, entry->MySize); //增加传输一个代表当前目录大小的变量
+#ifdef DYNAMIC
+  wr->size += appendInteger(buf + wr->size, entry->MetaVersion);
+#endif
 #endif
 /* add xmx add */
   SubmitRequest(client, wr);
@@ -312,6 +318,11 @@ void Worker::ProcessRemoteTypeReply (Client * client, WorkRequest * wr) {
   int Size;
   CurSize += readInteger( ( (char*)wr->ptr + CurSize), Size);
   entry->MySize = Size;
+#ifdef DYNAMIC
+  int Cur_version = 0;
+  CurSize += readInteger( ( (char*)wr->ptr + CurSize), Cur_version);
+  entry->MetaVersion = Cur_version;
+#endif
   //printf ("Current block's Size : %d\n", Size); // just for initial test
 #endif
   /* add xmx add */
@@ -352,6 +363,28 @@ void Worker::ProcessRemotePrivateReadReply(Client *client, WorkRequest *wr)
 
 void Worker::ProcessRemotePrivateWrite(Client *client, WorkRequest *wr)
 {
+#ifdef DYNAMIC_SECOND
+  if (wr->flag & CheckChange) { //change state;
+    epicLog(LOG_WARNING, "got remote just write");
+    directory.lock( (void*)(wr->addr) );
+    DirEntry * Entry = directory.GetEntry( (void*) (wr->addr) );
+    directory.ToToUnShared(Entry); //wait and change until recieve remote change
+    GAddr blk = wr->addr;
+
+    cache.lock(blk);
+    CacheLine *cline = nullptr;
+    cline = cache.GetCLine(blk);
+    if (cline == nullptr) cline = cache.SetCLine(wr->addr);
+    memcpy(cline->line, wr->ptr, wr->size);
+    cache.unlock(blk);
+
+    client->WriteWithImm(nullptr, nullptr, 0, wr->id);  //ok
+    directory.unlock( (void*) (wr->addr) );
+    delete wr;
+    wr = nullptr;
+    return;
+  }
+#endif
   // Just_for_test("ProcessRemotePrivateWrite", wr);
   GAddr blk = TOBLOCK(wr->addr);
   if (IsLocal(wr->addr))
@@ -582,6 +615,14 @@ void Worker::ProcessRequest(Client *client, WorkRequest *wr)
     case CHANGE:
       {
         ProcessRemoteChange(client, wr);
+        break;
+      }
+#endif
+
+#ifdef DYNAMIC_SECOND
+    case SEND_STATS:
+      {
+        ProcessRemoteSendStats(client, wr);
         break;
       }
 #endif

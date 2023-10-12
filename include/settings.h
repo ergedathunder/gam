@@ -34,17 +34,22 @@ using namespace std;
 /* add xmx add */
 
 /* add dynamic add */
-// #define DYNAMIC
+#define DYNAMIC
+#define DYNAMIC_SECOND
+#define DYNAMIC_DEBUG
+#define Time_interval 100000000
+#define Dir_interval 100000
+#define Node_interval 50000
 /* add dynamic add */
 
 /* add B_I add */
-// #define B_I
-// #define Max_version 15
-// #define Max_timediff 2000000000000
+//#define B_I
+#define Max_version 10
+#define Max_timediff 10000000
 /* add B_I add */
 
 /* add debug add */
-// #define XEG_DEBUG
+//#define XEG_DEBUG
 /* add debug add */
 
 //#define USE_PIPE_W_TO_H

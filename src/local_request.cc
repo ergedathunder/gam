@@ -367,6 +367,10 @@ void Worker::CreateDir(WorkRequest *wr, DataState Cur_state, GAddr Owner)
       laddr = (void *)i;
     directory.lock(laddr);
     directory.CreateEntry(laddr, Cur_state, Owner);
+#ifdef DYNAMIC_SECOND
+    DirEntry * CurEntry = directory.GetEntry (laddr);
+    strechvector(CurEntry); //初始化vector信息
+#endif
     directory.unlock(laddr);
     i = nextb;
   }

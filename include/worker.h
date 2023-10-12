@@ -415,10 +415,40 @@ public:
     else if (Curs == DataState::WRITE_EXCLUSIVE)
       return Write_exclusive;
   }
-  void ChangeDir(GAddr addr, DataState CurState);
+  void ChangeDir(GAddr addr, DataState CurState, GAddr CurOwner = 0);
   void ProcessRemoteChange(Client *client, WorkRequest *wr);
   void ProcessPendingChange(Client *client, WorkRequest *wr);
-  void StartChange(GAddr addr, DataState CurState);
+  void StartChange(GAddr addr, DataState CurState, GAddr CurOwner = 0);
+
+#ifdef DYNAMIC_SECOND
+  void CollectStats(DirEntry * Entry, GAddr addr, GAddr DirStart, bool flag);
+  void JudgeChange(GAddr addr);
+  void ProcessRemoteSendStats(Client * client, WorkRequest * wr);
+  void Prepare_for_ae (GAddr addr, int flag, uint64 Owner);
+
+  void strechvector(DirEntry * Entry) { //初始化所有的vector数组，比如在一开始建立entry的时候就要初始化，每次状态发生转化的时候也记得要重新初始化。
+    //仅仅在目录节点进行操作，其他节点通过read_time等等变量进行统计即可。
+    // static int curflag = 0;
+    // curflag += 1;
+    int Total_map = (int)widCliMapWorker.size();
+    // if (curflag == 1) {
+    //   epicLog(LOG_WARNING, "total_map : %d", Total_map);
+    // }
+    if ( (int)(Entry->calc_left.size()) > 0) {
+      epicLog(LOG_WARNING, "already streched");
+      return;
+    }
+    for (int i = 0; i < Total_map; ++i) {
+      Entry->calc_left.push_back(0);
+      Entry->calc_read.push_back(0);
+      Entry->calc_write.push_back(0);
+      Entry->calc_right.push_back(0);
+    }
+  }
+
+
+#endif
+
 #endif
 
 #ifdef B_I

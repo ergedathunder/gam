@@ -264,7 +264,20 @@ void Worker::ProcessPendingWrite(Client *cli, WorkRequest *wr)
     { // 所有副本节点都已经invalidate成功
       MyAssert(IsLocal(wr->addr));
       wr->unlock();
-      ChangeDir(wr->addr, GetDataState(wr->flag));
+#ifdef DYNAMIC_SECOND
+      DataState Cur_Dstate = GetDataState(wr->flag);
+      if (Cur_Dstate == DataState::ACCESS_EXCLUSIVE || Cur_Dstate == DataState::WRITE_EXCLUSIVE) {
+        epicLog(LOG_WARNING, "got here");
+        Prepare_for_ae(wr->addr, wr->flag, wr->arg);
+        //此时目录仍然处于transition state，相当于同步等待请求完成。
+      }
+      else {
+        ChangeDir(wr->addr, GetDataState(wr->flag));
+      }
+      int ret = ErasePendingWork(wr->id);
+#else
+      ChangeDir(wr->addr, GetDataState(wr->flag) );
+#endif
       delete wr; // 有待商榷
       wr = nullptr;
       return;
@@ -689,28 +702,39 @@ void Worker::ProcessPendingWriteForward(Client *cli, WorkRequest *wr)
     directory.lock(laddr);
     logOwner(lcli->GetWorkerId(), wr->addr);
     directory.ToDirty(laddr, lcli->ToGlobal(parent->ptr));
-#ifdef DYNAMIC
-    // do nothing
-#else
-  directory.unlock(laddr);
+
+#ifdef DYNAMIC_DEBUG
+//remember rewrite after debug (ifndef->ifdef)
 #endif
 
-    // TOOD: add completion check
+#ifdef DYNAMIC_SECOND
+    directory.unlock(laddr);
+#else
+  #ifdef DYNAMIC
+    //do nothing
+  #else
+    directory.unlock(laddr);
+  #endif
+#endif
+    //TOOD: add completion check
     lcli->WriteWithImm(nullptr, nullptr, 0, wr->pid); // ack the ownership change
-
-#ifdef DYNAMIC
-    if (directory.GetRacetime(laddr) >= 1 && directory.GetVersion(laddr) <= 3)
-    {
-      // epicLog(LOG_WARNING, "really got here");
-      // TODO: 这里可以限制子块分裂次数，通过检查metaversion
+#ifdef DYNAMIC_SECOND
+#else
+  #ifdef DYNAMIC
+    if (directory.GetRacetime(laddr) >= 0) {// && directory.GetVersion(laddr) <= 3
+      // if (directory.GetVersion(laddr) == 2) {
+      //   printf ("Cur Racetime : %d\n", directory.GetRacetime(laddr));
+      // }
+      //epicLog(LOG_WARNING, "really got here");
+      //TODO: 这里可以限制子块分裂次数，通过检查metaversion
       StartChange(wr->addr, DataState::WRITE_SHARED);
       int ret = ErasePendingWork(wr->id);
-      delete wr; // 有待商榷，这里是否不能执行processtoserverequest
+      delete wr; //有待商榷，这里是否不能执行processtoserverequest
       wr = nullptr;
       return;
     }
-    else
-      directory.unlock(laddr);
+    else directory.unlock(laddr);
+  #endif
 #endif
 
 #ifdef SELECTIVE_CACHING
@@ -1154,6 +1178,15 @@ void Worker::ProcessPendingRmRead(Client *client, WorkRequest *wr)
 
 void Worker::ProcessPendingPrivateWrite(Client *client, WorkRequest *wr)
 {
+#ifdef DYNAMIC_SECOND
+  if (wr->flag & CheckChange) {
+    ChangeDir(wr->addr, GetDataState(wr->flag), wr->arg);
+    int ret = ErasePendingWork(wr->id);
+    delete wr;
+    wr = nullptr;
+    return;
+  }
+#endif
   // Just_for_test("ProcessPendingPrivateWrite", wr);
   WorkRequest *parent = wr->parent;
   parent->lock();

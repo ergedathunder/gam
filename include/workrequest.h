@@ -64,6 +64,9 @@ enum Work
 #ifdef DYNAMIC
   CHANGE,
 #endif
+#ifdef DYNAMIC_SECOND
+  SEND_STATS,
+#endif
 
 #ifdef B_I
   BI_READ,
